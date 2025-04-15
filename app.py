@@ -27,11 +27,8 @@ cloudinary.config(
     api_secret=os.environ.get('CLOUDINARY_API_SECRET', 'KV1aQjnZSvmV3zPoHFddoDdzV4k')
 )
 
-# Database connection
-def get_db_connection():
-    conn = sqlite3.connect('database/hostelmate.db')
-    conn.row_factory = sqlite3.Row  # This enables column access by name: row['column_name']
-    return conn
+# Import database utility functions
+from database_utils import get_db_connection, commit_db_changes, close_db_connection, is_postgres, adapt_query_for_db, get_placeholder
 
 # User role decorators
 def login_required(f):

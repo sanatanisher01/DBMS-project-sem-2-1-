@@ -26,7 +26,7 @@ A comprehensive hostel management system that streamlines room allocation, compl
 ## Technology Stack
 - Frontend: HTML, CSS, JavaScript, Bootstrap
 - Backend: Python with Flask
-- Database: SQLite
+- Database: PostgreSQL (production) / SQLite (development)
 - Image Storage: Cloudinary
 
 ## Deployment on Render
@@ -43,6 +43,7 @@ A comprehensive hostel management system that streamlines room allocation, compl
    - `CLOUDINARY_CLOUD_NAME`: Your Cloudinary cloud name
    - `CLOUDINARY_API_KEY`: Your Cloudinary API key
    - `CLOUDINARY_API_SECRET`: Your Cloudinary API secret
+   - `DATABASE_URL`: Your PostgreSQL connection string (create a PostgreSQL database in Render first)
 5. Deploy the application
 
 ## Local Development
