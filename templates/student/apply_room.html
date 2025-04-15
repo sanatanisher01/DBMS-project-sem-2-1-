@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block title %}Apply for Room - HostelMate{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Apply for Room</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('apply_room') }}">
+                    <div class="mb-3">
+                        <label for="building_id" class="form-label">Hostel Building</label>
+                        <select class="form-select" id="building_id" name="building_id" required>
+                            <option value="" selected disabled>Select a hostel building</option>
+                            {% for building in buildings %}
+                                <option value="{{ building.building_id }}">{{ building.building_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="room_type" class="form-label">Room Type</label>
+                        <select class="form-select" id="room_type" name="room_type" required>
+                            <option value="" selected disabled>Select room type</option>
+                            <option value="single">Single Room</option>
+                            <option value="double">Double Room</option>
+                            <option value="triple">Triple Room</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="preferred_floor" class="form-label">Preferred Floor (Optional)</label>
+                        <select class="form-select" id="preferred_floor" name="preferred_floor">
+                            <option value="" selected>No preference</option>
+                            <option value="1">Ground Floor</option>
+                            <option value="2">First Floor</option>
+                            <option value="3">Second Floor</option>
+                            <option value="4">Third Floor</option>
+                            <option value="5">Fourth Floor</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="roommate_preference" class="form-label">Roommate Preference (Optional)</label>
+                        <select class="form-select" id="roommate_preference" name="roommate_preference">
+                            <option value="" selected>No preference</option>
+                            {% for roommate in potential_roommates %}
+                                <option value="{{ roommate.student_id }}">{{ roommate.full_name }} ({{ roommate.roll_number }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Submit Application</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

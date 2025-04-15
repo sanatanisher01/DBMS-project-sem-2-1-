@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Notices - HostelMate{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<style>
+    .ql-editor {
+        min-height: 200px;
+    }
+    .notice-preview {
+        border: 1px solid #dee2e6;
+        border-radius: 0.25rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    .notice-image {
+        max-height: 200px;
+        object-fit: cover;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12 d-flex justify-content-between align-items-center">
+        <h2>Manage Notices</h2>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-2"></i> Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Create New Notice</h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('create_notice') }}" method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Notice Title</label>
+                        <input type="text" class="form-control" id="title" name="title" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="content" class="form-label">Notice Content</label>
+                        <div id="editor"></div>
+                        <input type="hidden" name="content" id="content">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notice_image" class="form-label">Upload Image (Optional)</label>
+                        <input type="file" class="form-control" id="notice_image" name="notice_image" accept="image/*">
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="building_id" class="form-label">Target Building (Optional)</label>
+                            <select class="form-select" id="building_id" name="building_id">
+                                <option value="">All Buildings</option>
+                                {% for building in buildings %}
+                                <option value="{{ building.building_id }}">{{ building.building_name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Leave empty to show notice to all students</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="expiry_date" class="form-label">Expiry Date (Optional)</label>
+                            <input type="date" class="form-control" id="expiry_date" name="expiry_date">
+                            <div class="form-text">Leave empty for no expiry</div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane me-2"></i> Publish Notice
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Published Notices</h5>
+                <span class="badge bg-light text-dark">{{ notices|length }}</span>
+            </div>
+            <div class="card-body">
+                {% if notices %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Posted On</th>
+                                <th>Building</th>
+                                <th>Expiry</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for notice in notices %}
+                            <tr>
+                                <td>{{ notice.title }}</td>
+                                <td>{{ notice.posted_at }}</td>
+                                <td>
+                                    {% if notice.building_name %}
+                                        {{ notice.building_name }}
+                                    {% else %}
+                                        All Buildings
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if notice.expiry_date %}
+                                        {{ notice.expiry_date }}
+                                    {% else %}
+                                        No Expiry
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if notice.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="{{ url_for('view_notice', notice_id=notice.notice_id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{{ url_for('edit_notice', notice_id=notice.notice_id) }}" class="btn btn-sm btn-outline-secondary">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{{ url_for('toggle_notice', notice_id=notice.notice_id) }}" class="btn btn-sm btn-outline-{{ 'danger' if notice.is_active else 'success' }}">
+                                            <i class="fas fa-{{ 'times' if notice.is_active else 'check' }}"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-clipboard fa-4x text-muted mb-3"></i>
+                    <h5>No Notices</h5>
+                    <p>There are no notices published yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize Quill editor
+        var quill = new Quill('#editor', {
+            theme: 'snow',
+            modules: {
+                toolbar: [
+                    [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                    ['bold', 'italic', 'underline', 'strike'],
+                    [{ 'color': [] }, { 'background': [] }],
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    ['link'],
+                    ['clean']
+                ]
+            },
+            placeholder: 'Write your notice content here...'
+        });
+        
+        // Update hidden form field before submit
+        const form = document.querySelector('form');
+        form.onsubmit = function() {
+            var content = document.querySelector('#content');
+            content.value = quill.root.innerHTML;
+            return true;
+        };
+    });
+</script>
+{% endblock %}

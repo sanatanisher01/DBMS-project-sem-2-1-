@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+
+{% block title %}Room Applications - HostelMate{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12 d-flex justify-content-between align-items-center">
+        <h2>Room Applications</h2>
+        <a href="{{ url_for('warden_dashboard') }}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-2"></i> Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Pending Applications -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-clipboard-list me-2"></i> Pending Applications</h5>
+                <div class="input-group input-group-sm w-auto">
+                    <input type="text" class="form-control table-search" placeholder="Search applications..." data-table="applicationsTable">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if applications %}
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="applicationsTable">
+                            <thead>
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Roll Number</th>
+                                    <th>Preferred Building</th>
+                                    <th>Room Type</th>
+                                    <th>Preferred Floor</th>
+                                    <th>Submitted</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for application in applications %}
+                                    <tr>
+                                        <td>{{ application.full_name }}</td>
+                                        <td>{{ application.roll_number }}</td>
+                                        <td>{{ application.building_name }}</td>
+                                        <td>{{ application.preferred_room_type|capitalize }}</td>
+                                        <td>{{ application.preferred_floor or 'Any' }}</td>
+                                        <td>{{ application.application_date }}</td>
+                                        <td>
+                                            <a href="{{ url_for('allocate_room', application_id=application.application_id) }}" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-home"></i> Allocate Room
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-clipboard-check fa-4x text-muted mb-3"></i>
+                        <h5>No Pending Applications</h5>
+                        <p>There are no pending room applications at this time.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Processed Applications -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-check-circle me-2"></i> Processed Applications</h5>
+                <button class="btn btn-sm btn-light" type="button" data-bs-toggle="collapse" data-bs-target="#processedApplications" aria-expanded="false" aria-controls="processedApplications">
+                    <i class="fas fa-chevron-down"></i> Show/Hide
+                </button>
+            </div>
+            <div class="collapse" id="processedApplications">
+                <div class="card-body">
+                    {% if processed_applications %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Student</th>
+                                        <th>Roll Number</th>
+                                        <th>Building</th>
+                                        <th>Room Type</th>
+                                        <th>Status</th>
+                                        <th>Processed Date</th>
+                                        <th>Allocated Room</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for application in processed_applications %}
+                                        <tr class="{% if application.status == 'approved' %}table-success{% else %}table-secondary{% endif %}">
+                                            <td>{{ application.full_name }}</td>
+                                            <td>{{ application.roll_number }}</td>
+                                            <td>{{ application.building_name }}</td>
+                                            <td>{{ application.preferred_room_type|capitalize }}</td>
+                                            <td>
+                                                {% if application.status == 'approved' %}
+                                                    <span class="badge bg-success">Approved</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Rejected</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ application.processed_date }}</td>
+                                            <td>
+                                                {% if application.status == 'approved' and application.room_number %}
+                                                    {{ application.room_number }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-info-circle fa-3x text-muted mb-3"></i>
+                            <h5>No Processed Applications</h5>
+                            <p class="text-muted">There are no processed applications at this time.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

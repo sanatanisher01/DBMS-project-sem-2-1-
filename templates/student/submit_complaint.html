@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title %}Submit Complaint - HostelMate{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Submit Complaint</h4>
+            </div>
+            <div class="card-body">
+                {% if room %}
+                    <div class="alert alert-info">
+                        <strong>Room:</strong> {{ room.room_number }}
+                    </div>
+                    
+                    <form method="POST" action="{{ url_for('submit_complaint') }}">
+                        <div class="mb-3">
+                            <label for="complaint_type" class="form-label">Complaint Type</label>
+                            <select class="form-select" id="complaint_type" name="complaint_type" required>
+                                <option value="" selected disabled>Select complaint type</option>
+                                <option value="plumbing">Plumbing Issue</option>
+                                <option value="electrical">Electrical Issue</option>
+                                <option value="furniture">Furniture Issue</option>
+                                <option value="cleaning">Cleaning Issue</option>
+                                <option value="wifi">WiFi Issue</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="4" required placeholder="Please provide details about the issue..."></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="priority" class="form-label">Priority</label>
+                            <select class="form-select" id="priority" name="priority" required>
+                                <option value="low">Low</option>
+                                <option value="medium" selected>Medium</option>
+                                <option value="high">High</option>
+                            </select>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Submit Complaint</button>
+                        </div>
+                    </form>
+                {% else %}
+                    <div class="alert alert-warning">
+                        <h5 class="alert-heading">No Room Allocated!</h5>
+                        <p>You must be allocated to a room before you can submit a complaint.</p>
+                        <hr>
+                        <p class="mb-0">Please apply for a room first.</p>
+                    </div>
+                    <div class="text-center">
+                        <a href="{{ url_for('apply_room') }}" class="btn btn-primary">Apply for Room</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

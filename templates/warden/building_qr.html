@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}Building QR Code - HostelMate{% endblock %}
+
+{% block extra_css %}
+<style>
+    .qr-container {
+        background-color: white;
+        padding: 2rem;
+        border-radius: 1rem;
+        box-shadow: var(--shadow-lg);
+        text-align: center;
+        max-width: 400px;
+        margin: 0 auto;
+    }
+    
+    .qr-code {
+        width: 300px;
+        height: 300px;
+        margin: 1rem auto;
+    }
+    
+    .print-btn {
+        margin-top: 2rem;
+    }
+    
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+        
+        body {
+            background-color: white !important;
+        }
+        
+        .qr-container {
+            box-shadow: none !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12 d-flex justify-content-between align-items-center">
+        <h2>Building QR Code</h2>
+        <a href="{{ url_for('visitor_records') }}" class="btn btn-outline-primary no-print">
+            <i class="fas fa-arrow-left me-2"></i> Back to Visitor Records
+        </a>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">{{ building.building_name }} QR Code</h4>
+            </div>
+            <div class="card-body">
+                <p class="lead text-center mb-4">
+                    Display this QR code at the hostel entrance for visitors to scan and register.
+                </p>
+                
+                <div class="qr-container">
+                    <h5>Scan to Register as a Visitor</h5>
+                    <img src="{{ qr_code_url }}" alt="QR Code" class="qr-code">
+                    <p class="mb-0">{{ building.building_name }}</p>
+                    <p class="text-muted">{{ building.address }}</p>
+                </div>
+                
+                <div class="text-center mt-4 no-print">
+                    <button onclick="window.print()" class="btn btn-primary print-btn">
+                        <i class="fas fa-print me-2"></i> Print QR Code
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

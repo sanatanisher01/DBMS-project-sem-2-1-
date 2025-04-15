@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Hostels - HostelMate{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12 d-flex justify-content-between align-items-center">
+        <h2>Manage Hostel Buildings</h2>
+        <div>
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-primary me-2">
+                <i class="fas fa-arrow-left me-2"></i> Back to Dashboard
+            </a>
+            <a href="{{ url_for('occupancy_reports') }}" class="btn btn-outline-info">
+                <i class="fas fa-chart-bar me-2"></i> View Occupancy Reports
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Add New Hostel Building -->
+    <div class="col-md-4 mb-4">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Add New Hostel Building</h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('add_hostel_building') }}" method="POST">
+                    <div class="mb-3">
+                        <label for="building_name" class="form-label">Building Name</label>
+                        <input type="text" class="form-control" id="building_name" name="building_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="location" class="form-label">Location</label>
+                        <input type="text" class="form-control" id="location" name="location" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="gender" class="form-label">Gender</label>
+                        <select class="form-select" id="gender" name="gender" required>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="floors" class="form-label">Number of Floors</label>
+                        <input type="number" class="form-control" id="floors" name="floors" min="1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-plus-circle me-2"></i> Add Building
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Existing Hostel Buildings -->
+    <div class="col-md-8 mb-4">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Hostel Buildings</h5>
+                <span class="badge bg-light text-dark">{{ buildings|length }}</span>
+            </div>
+            <div class="card-body">
+                {% if buildings %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Building Name</th>
+                                <th>Location</th>
+                                <th>Gender</th>
+                                <th>Floors</th>
+                                <th>Rooms</th>
+                                <th>Occupancy</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for building in buildings %}
+                            <tr>
+                                <td>{{ building.building_name }}</td>
+                                <td>{{ building.location }}</td>
+                                <td>{{ building.gender|capitalize }}</td>
+                                <td>{{ building.floors }}</td>
+                                <td>{{ building.total_rooms }}</td>
+                                <td>
+                                    {% set occupancy_rate = (building.occupied_rooms / building.total_rooms * 100)|round if building.total_rooms > 0 else 0 %}
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar bg-success" role="progressbar"
+                                             style="width: {{ occupancy_rate }}%;"
+                                             aria-valuenow="{{ occupancy_rate }}" aria-valuemin="0" aria-valuemax="100">
+                                            {{ occupancy_rate }}%
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="{{ url_for('manage_rooms', building_id=building.building_id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-door-open"></i>
+                                        </a>
+                                        <a href="{{ url_for('edit_hostel_building', building_id=building.building_id) }}" class="btn btn-sm btn-outline-secondary">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                data-bs-toggle="modal" data-bs-target="#deleteModal{{ building.building_id }}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-building fa-4x text-muted mb-3"></i>
+                    <h5>No Hostel Buildings</h5>
+                    <p>There are no hostel buildings in the system yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modals -->
+{% for building in buildings %}
+<div class="modal fade" id="deleteModal{{ building.building_id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Delete Hostel Building</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <strong>{{ building.building_name }}</strong>?</p>
+                <p class="text-danger"><strong>Warning:</strong> This will also delete all rooms and allocations associated with this building.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form action="{{ url_for('delete_hostel_building', building_id=building.building_id) }}" method="POST">
+                    <button type="submit" class="btn btn-danger">Delete Building</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

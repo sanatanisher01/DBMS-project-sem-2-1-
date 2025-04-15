@@ -1,0 +1,286 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Complaints - HostelMate{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12 d-flex justify-content-between align-items-center">
+        <h2>Manage Complaints</h2>
+        <a href="{{ url_for('warden_dashboard') }}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-2"></i> Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Pending Complaints -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card shadow border-danger">
+            <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-exclamation-circle me-2"></i> High Priority Complaints</h5>
+                <span class="badge bg-light text-danger">{{ high_priority_complaints|length }}</span>
+            </div>
+            <div class="card-body">
+                {% if high_priority_complaints %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Room</th>
+                                    <th>Type</th>
+                                    <th>Submitted</th>
+                                    <th>Status</th>
+                                    <th>Description</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for complaint in high_priority_complaints %}
+                                    <tr>
+                                        <td>{{ complaint.full_name }}</td>
+                                        <td>{{ complaint.building_name }} - {{ complaint.room_number }}</td>
+                                        <td>{{ complaint.complaint_type|capitalize }}</td>
+                                        <td>{{ complaint.submitted_date }}</td>
+                                        <td>
+                                            {% if complaint.status == 'pending' %}
+                                                <span class="badge bg-secondary">Pending</span>
+                                            {% elif complaint.status == 'in_progress' %}
+                                                <span class="badge bg-primary">In Progress</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ complaint.description }}">
+                                                <i class="fas fa-eye"></i> View
+                                            </button>
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('resolve_complaint', complaint_id=complaint.complaint_id) }}" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-edit"></i> Update
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                        <h5>No High Priority Complaints</h5>
+                        <p class="text-muted">There are no high priority complaints at this time.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Medium Priority Complaints -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card shadow border-warning">
+            <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i> Medium Priority Complaints</h5>
+                <span class="badge bg-dark">{{ medium_priority_complaints|length }}</span>
+            </div>
+            <div class="card-body">
+                {% if medium_priority_complaints %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Room</th>
+                                    <th>Type</th>
+                                    <th>Submitted</th>
+                                    <th>Status</th>
+                                    <th>Description</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for complaint in medium_priority_complaints %}
+                                    <tr>
+                                        <td>{{ complaint.full_name }}</td>
+                                        <td>{{ complaint.building_name }} - {{ complaint.room_number }}</td>
+                                        <td>{{ complaint.complaint_type|capitalize }}</td>
+                                        <td>{{ complaint.submitted_date }}</td>
+                                        <td>
+                                            {% if complaint.status == 'pending' %}
+                                                <span class="badge bg-secondary">Pending</span>
+                                            {% elif complaint.status == 'in_progress' %}
+                                                <span class="badge bg-primary">In Progress</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ complaint.description }}">
+                                                <i class="fas fa-eye"></i> View
+                                            </button>
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('resolve_complaint', complaint_id=complaint.complaint_id) }}" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-edit"></i> Update
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                        <h5>No Medium Priority Complaints</h5>
+                        <p class="text-muted">There are no medium priority complaints at this time.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Low Priority Complaints -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow">
+            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i> Low Priority Complaints</h5>
+                <span class="badge bg-light text-dark">{{ low_priority_complaints|length }}</span>
+            </div>
+            <div class="card-body">
+                {% if low_priority_complaints %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Room</th>
+                                    <th>Type</th>
+                                    <th>Submitted</th>
+                                    <th>Status</th>
+                                    <th>Description</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for complaint in low_priority_complaints %}
+                                    <tr>
+                                        <td>{{ complaint.full_name }}</td>
+                                        <td>{{ complaint.building_name }} - {{ complaint.room_number }}</td>
+                                        <td>{{ complaint.complaint_type|capitalize }}</td>
+                                        <td>{{ complaint.submitted_date }}</td>
+                                        <td>
+                                            {% if complaint.status == 'pending' %}
+                                                <span class="badge bg-secondary">Pending</span>
+                                            {% elif complaint.status == 'in_progress' %}
+                                                <span class="badge bg-primary">In Progress</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ complaint.description }}">
+                                                <i class="fas fa-eye"></i> View
+                                            </button>
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('resolve_complaint', complaint_id=complaint.complaint_id) }}" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-edit"></i> Update
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                        <h5>No Low Priority Complaints</h5>
+                        <p class="text-muted">There are no low priority complaints at this time.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Resolved Complaints Section -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-check-circle me-2"></i> Resolved Complaints</h5>
+                <button class="btn btn-sm btn-light" type="button" data-bs-toggle="collapse" data-bs-target="#resolvedComplaints" aria-expanded="false" aria-controls="resolvedComplaints">
+                    <i class="fas fa-chevron-down"></i> Show/Hide
+                </button>
+            </div>
+            <div class="collapse" id="resolvedComplaints">
+                <div class="card-body">
+                    {% if resolved_complaints %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Student</th>
+                                        <th>Room</th>
+                                        <th>Type</th>
+                                        <th>Priority</th>
+                                        <th>Submitted</th>
+                                        <th>Resolved</th>
+                                        <th>Resolution Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for complaint in resolved_complaints %}
+                                        <tr>
+                                            <td>{{ complaint.full_name }}</td>
+                                            <td>{{ complaint.building_name }} - {{ complaint.room_number }}</td>
+                                            <td>{{ complaint.complaint_type|capitalize }}</td>
+                                            <td>
+                                                {% if complaint.priority == 'high' %}
+                                                    <span class="badge bg-danger">High</span>
+                                                {% elif complaint.priority == 'medium' %}
+                                                    <span class="badge bg-warning text-dark">Medium</span>
+                                                {% else %}
+                                                    <span class="badge bg-info text-dark">Low</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ complaint.submitted_date }}</td>
+                                            <td>{{ complaint.resolved_date }}</td>
+                                            <td>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ complaint.resolution_notes }}">
+                                                    <i class="fas fa-eye"></i> View
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-info-circle fa-3x text-muted mb-3"></i>
+                            <h5>No Resolved Complaints</h5>
+                            <p class="text-muted">There are no resolved complaints at this time.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Initialize tooltips
+    document.addEventListener('DOMContentLoaded', function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl, {
+                html: true
+            });
+        });
+    });
+</script>
+{% endblock %}

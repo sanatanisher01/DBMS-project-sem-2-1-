@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}Resolve Complaint - HostelMate{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Update Complaint Status</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <h5 class="alert-heading">Complaint Details</h5>
+                    <p><strong>Student:</strong> {{ complaint.full_name }}</p>
+                    <p><strong>Room:</strong> {{ complaint.building_name }} - {{ complaint.room_number }}</p>
+                    <p><strong>Type:</strong> {{ complaint.complaint_type|capitalize }}</p>
+                    <p><strong>Priority:</strong> {{ complaint.priority|capitalize }}</p>
+                    <p><strong>Submitted:</strong> {{ complaint.submitted_date }}</p>
+                    <p><strong>Description:</strong> {{ complaint.description }}</p>
+                </div>
+                
+                <form method="POST" action="{{ url_for('resolve_complaint', complaint_id=complaint.complaint_id) }}">
+                    <div class="mb-3">
+                        <label for="status" class="form-label">Update Status</label>
+                        <select class="form-select" id="status" name="status" required>
+                            <option value="pending" {% if complaint.status == 'pending' %}selected{% endif %}>Pending</option>
+                            <option value="in_progress" {% if complaint.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                            <option value="resolved">Resolved</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="resolution_notes" class="form-label">Resolution Notes</label>
+                        <textarea class="form-control" id="resolution_notes" name="resolution_notes" rows="4" required>{{ complaint.resolution_notes or '' }}</textarea>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Update Complaint</button>
+                        <a href="{{ url_for('warden_dashboard') }}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

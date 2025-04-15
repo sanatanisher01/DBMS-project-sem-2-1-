@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}Visitor Registration - HostelMate{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Visitor Registration</h4>
+            </div>
+            <div class="card-body">
+                {% if building %}
+                    <div class="alert alert-info mb-4">
+                        <h5 class="alert-heading">Hostel Information</h5>
+                        <p><strong>Building:</strong> {{ building.building_name }}</p>
+                        <p><strong>Address:</strong> {{ building.address }}</p>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('register_visitor', building_id=building.building_id) }}">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="student_id" class="form-label">Student to Visit</label>
+                                <select class="form-select" id="student_id" name="student_id" required>
+                                    <option value="" selected disabled>Select student</option>
+                                    {% for student in students %}
+                                        <option value="{{ student.student_id }}">{{ student.full_name }} (Room {{ student.room_number }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="visitor_name" class="form-label">Your Name</label>
+                                <input type="text" class="form-control" id="visitor_name" name="visitor_name" required>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="visitor_phone" class="form-label">Your Phone Number</label>
+                                <input type="tel" class="form-control" id="visitor_phone" name="visitor_phone" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="relation" class="form-label">Relation to Student</label>
+                                <select class="form-select" id="relation" name="relation" required>
+                                    <option value="" selected disabled>Select relation</option>
+                                    <option value="Parent">Parent</option>
+                                    <option value="Sibling">Sibling</option>
+                                    <option value="Relative">Relative</option>
+                                    <option value="Friend">Friend</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="purpose" class="form-label">Purpose of Visit</label>
+                                <input type="text" class="form-control" id="purpose" name="purpose" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="duration" class="form-label">Expected Duration of Visit</label>
+                                <select class="form-select" id="duration" name="duration" required>
+                                    <option value="1">1 hour</option>
+                                    <option value="2" selected>2 hours</option>
+                                    <option value="3">3 hours</option>
+                                    <option value="4">4 hours</option>
+                                    <option value="6">6 hours</option>
+                                    <option value="8">8 hours</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="text-center mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-paper-plane me-2"></i> Submit Visitor Request
+                            </button>
+                        </div>
+                    </form>
+                {% else %}
+                    <div class="alert alert-danger">
+                        <h5 class="alert-heading">Invalid QR Code</h5>
+                        <p>The QR code you scanned is invalid or has expired. Please contact the hostel administration.</p>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="card-footer text-center">
+                <p class="mb-0">Your request will be sent to the warden for approval.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

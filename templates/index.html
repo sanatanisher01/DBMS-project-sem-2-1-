@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}HostelMate - Home{% endblock %}
+
+{% block content %}
+<div class="row align-items-center">
+    <div class="col-md-6">
+        <h1 class="display-4 fw-bold">Welcome to HostelMate</h1>
+        <p class="lead">A comprehensive digital solution for hostel management.</p>
+        <p>HostelMate digitalizes hostel room allocation, complaint management, and fee tracking. It eliminates paperwork and offers a transparent process for room selection, roommate preference, and maintenance tracking.</p>
+
+        <div class="d-grid gap-2 d-md-flex justify-content-md-start mt-4">
+            {% if not session.get('user_id') %}
+                <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg px-4 me-md-2">Login</a>
+            {% else %}
+                <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-lg px-4 me-md-2">Go to Dashboard</a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="col-md-6">
+        <img src="{{ url_for('static', filename='img/gla-hostel.jpg') }}" class="img-fluid rounded shadow" alt="GLA University Hostel Building">
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-12">
+        <h2 class="text-center mb-4">Key Features</h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-bed fa-3x text-primary mb-3"></i>
+                <h5 class="card-title">Room Allocation</h5>
+                <p class="card-text">Apply for rooms with roommate preferences and get transparent allocation decisions.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-tools fa-3x text-primary mb-3"></i>
+                <h5 class="card-title">Complaint Management</h5>
+                <p class="card-text">Submit and track maintenance complaints with real-time status updates.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-money-bill-wave fa-3x text-primary mb-3"></i>
+                <h5 class="card-title">Fee Tracking</h5>
+                <p class="card-text">View and manage hostel fees with payment history and due date reminders.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">For Students</h5>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item">Apply for rooms and roommate preferences</li>
+                    <li class="list-group-item">Submit complaints (e.g., plumbing, electricity)</li>
+                    <li class="list-group-item">View mess schedules and fees</li>
+                    <li class="list-group-item">Track visitor approvals</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">For Wardens</h5>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item">Allocate and shift rooms</li>
+                    <li class="list-group-item">Track and resolve maintenance requests</li>
+                    <li class="list-group-item">Manage visitor records</li>
+                    <li class="list-group-item">Post hostel notices</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

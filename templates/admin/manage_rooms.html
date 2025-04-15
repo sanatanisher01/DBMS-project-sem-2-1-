@@ -1,0 +1,370 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Rooms - {{ building.building_name }} - HostelMate{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12 d-flex justify-content-between align-items-center">
+        <h2>Manage Rooms - {{ building.building_name }}</h2>
+        <div>
+            <a href="{{ url_for('manage_hostels') }}" class="btn btn-outline-primary me-2">
+                <i class="fas fa-arrow-left me-2"></i> Back to Hostels
+            </a>
+            <a href="{{ url_for('occupancy_reports') }}" class="btn btn-outline-info">
+                <i class="fas fa-chart-bar me-2"></i> View Occupancy Reports
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <!-- Building Info Card -->
+    <div class="col-md-4">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Building Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <strong>Location:</strong> {{ building.location }}
+                </div>
+                <div class="mb-3">
+                    <strong>Gender:</strong> {{ building.gender|capitalize }}
+                </div>
+                <div class="mb-3">
+                    <strong>Floors:</strong> {{ building.floors or 'Not specified' }}
+                </div>
+                <div class="mb-3">
+                    <strong>Total Rooms:</strong> {{ rooms|length }}
+                </div>
+                <div class="mb-3">
+                    <strong>Occupancy Rate:</strong>
+                    {% set occupied_count = rooms|selectattr('status', 'equalto', 'occupied')|list|length %}
+                    {% set occupancy_rate = (occupied_count / rooms|length * 100)|round if rooms|length > 0 else 0 %}
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar bg-success" role="progressbar"
+                             style="width: {{ occupancy_rate }}%;"
+                             aria-valuenow="{{ occupancy_rate }}" aria-valuemin="0" aria-valuemax="100">
+                            {{ occupancy_rate }}%
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <strong>Description:</strong>
+                    <p>{{ building.description or 'No description available.' }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add New Room -->
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Add New Rooms</h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('add_rooms', building_id=building.building_id) }}" method="POST">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="floor" class="form-label">Floor</label>
+                            <select class="form-select" id="floor" name="floor" required>
+                                {% for floor in range(1, (building.floors or 4) + 1) %}
+                                <option value="{{ floor }}">{{ floor }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="room_type" class="form-label">Room Type</label>
+                            <select class="form-select" id="room_type" name="room_type" required>
+                                <option value="single">Single</option>
+                                <option value="double">Double</option>
+                                <option value="triple">Triple</option>
+                                <option value="quad">Quad</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="count" class="form-label">Number of Rooms</label>
+                            <input type="number" class="form-control" id="count" name="count" min="1" max="20" value="1" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="start_number" class="form-label">Start Room Number</label>
+                            <input type="text" class="form-control" id="start_number" name="start_number" required>
+                            <div class="form-text">e.g. 101, A101, etc.</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="monthly_rent" class="form-label">Monthly Rent (₹)</label>
+                            <input type="number" class="form-control" id="monthly_rent" name="monthly_rent" min="0" required>
+                        </div>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-plus-circle me-2"></i> Add Rooms
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Room Management -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Rooms</h5>
+                <div>
+                    <span class="badge bg-success me-2">{{ rooms|selectattr('status', 'equalto', 'occupied')|list|length }} Occupied</span>
+                    <span class="badge bg-info me-2">{{ rooms|selectattr('status', 'equalto', 'available')|list|length }} Available</span>
+                    <span class="badge bg-warning">{{ rooms|selectattr('status', 'equalto', 'maintenance')|list|length }} Maintenance</span>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if rooms %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Room Number</th>
+                                <th>Floor</th>
+                                <th>Type</th>
+                                <th>Capacity</th>
+                                <th>Monthly Rent</th>
+                                <th>Status</th>
+                                <th>Occupants</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for room in rooms %}
+                            <tr>
+                                <td>{{ room.room_number }}</td>
+                                <td>{{ room.floor_number }}</td>
+                                <td>{{ room.room_type|capitalize }}</td>
+                                <td>
+                                    {% if room.room_type == 'single' %}1
+                                    {% elif room.room_type == 'double' %}2
+                                    {% elif room.room_type == 'triple' %}3
+                                    {% elif room.room_type == 'quad' %}4
+                                    {% else %}1
+                                    {% endif %}
+                                </td>
+                                <td>₹{{ room.monthly_rent }}</td>
+                                <td>
+                                    {% if room.status == 'occupied' %}
+                                        <span class="badge bg-success">Occupied</span>
+                                    {% elif room.status == 'available' %}
+                                        <span class="badge bg-info">Available</span>
+                                    {% elif room.status == 'maintenance' %}
+                                        <span class="badge bg-warning">Maintenance</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if room.occupants %}
+                                        {{ room.occupants|length }}/
+                                        {% if room.room_type == 'single' %}1
+                                        {% elif room.room_type == 'double' %}2
+                                        {% elif room.room_type == 'triple' %}3
+                                        {% elif room.room_type == 'quad' %}4
+                                        {% else %}1
+                                        {% endif %}
+                                    {% else %}
+                                        0/
+                                        {% if room.room_type == 'single' %}1
+                                        {% elif room.room_type == 'double' %}2
+                                        {% elif room.room_type == 'triple' %}3
+                                        {% elif room.room_type == 'quad' %}4
+                                        {% else %}1
+                                        {% endif %}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-sm btn-outline-primary"
+                                                data-bs-toggle="modal" data-bs-target="#viewModal{{ room.room_id }}">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary"
+                                                data-bs-toggle="modal" data-bs-target="#editModal{{ room.room_id }}">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                                data-bs-toggle="modal" data-bs-target="#deleteModal{{ room.room_id }}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-door-closed fa-4x text-muted mb-3"></i>
+                    <h5>No Rooms</h5>
+                    <p>There are no rooms in this building yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View Room Modals -->
+{% for room in rooms %}
+<div class="modal fade" id="viewModal{{ room.room_id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Room {{ room.room_number }} Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Room Information</h6>
+                        <div class="mb-2"><strong>Room Number:</strong> {{ room.room_number }}</div>
+                        <div class="mb-2"><strong>Floor:</strong> {{ room.floor_number }}</div>
+                        <div class="mb-2"><strong>Type:</strong> {{ room.room_type|capitalize }}</div>
+                        <div class="mb-2"><strong>Monthly Rent:</strong> ₹{{ room.monthly_rent }}</div>
+                        <div class="mb-2"><strong>Status:</strong>
+                            {% if room.status == 'occupied' %}
+                                <span class="badge bg-success">Occupied</span>
+                            {% elif room.status == 'available' %}
+                                <span class="badge bg-info">Available</span>
+                            {% elif room.status == 'maintenance' %}
+                                <span class="badge bg-warning">Maintenance</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Current Occupants</h6>
+                        {% if room.occupants %}
+                            <ul class="list-group">
+                                {% for occupant in room.occupants %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    {{ occupant.full_name }} ({{ occupant.roll_number }})
+                                    <form action="{{ url_for('remove_student_from_room', room_id=room.room_id, student_id=occupant.student_id) }}" method="POST">
+                                        <button type="submit" class="btn btn-sm btn-danger">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </form>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p class="text-muted">No current occupants</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if room.status != 'maintenance' and room.occupants|length < room.capacity %}
+                <hr>
+                <h6>Add Student to Room</h6>
+                <form action="{{ url_for('add_student_to_room', room_id=room.room_id) }}" method="POST">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <select class="form-select" name="student_id" required>
+                                <option value="" selected disabled>Select a student</option>
+                                {% for student in available_students %}
+                                <option value="{{ student.student_id }}">{{ student.full_name }} ({{ student.roll_number }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-primary w-100">Add Student</button>
+                        </div>
+                    </div>
+                </form>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Room Modals -->
+<div class="modal fade" id="editModal{{ room.room_id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-secondary text-white">
+                <h5 class="modal-title">Edit Room {{ room.room_number }}</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form action="{{ url_for('update_room', room_id=room.room_id) }}" method="POST">
+                    <div class="mb-3">
+                        <label for="room_number{{ room.room_id }}" class="form-label">Room Number</label>
+                        <input type="text" class="form-control" id="room_number{{ room.room_id }}" name="room_number" value="{{ room.room_number }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="floor{{ room.room_id }}" class="form-label">Floor</label>
+                        <select class="form-select" id="floor{{ room.room_id }}" name="floor" required>
+                            {% for floor in range(1, (building.floors or 4) + 1) %}
+                            <option value="{{ floor }}" {% if floor == room.floor_number %}selected{% endif %}>{{ floor }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="room_type{{ room.room_id }}" class="form-label">Room Type</label>
+                        <select class="form-select" id="room_type{{ room.room_id }}" name="room_type" required>
+                            <option value="single" {% if room.room_type == 'single' %}selected{% endif %}>Single</option>
+                            <option value="double" {% if room.room_type == 'double' %}selected{% endif %}>Double</option>
+                            <option value="triple" {% if room.room_type == 'triple' %}selected{% endif %}>Triple</option>
+                            <option value="quad" {% if room.room_type == 'quad' %}selected{% endif %}>Quad</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="monthly_rent{{ room.room_id }}" class="form-label">Monthly Rent (₹)</label>
+                        <input type="number" class="form-control" id="monthly_rent{{ room.room_id }}" name="monthly_rent" value="{{ room.monthly_rent }}" min="0" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="status{{ room.room_id }}" class="form-label">Status</label>
+                        <select class="form-select" id="status{{ room.room_id }}" name="status" required>
+                            <option value="available" {% if room.status == 'available' %}selected{% endif %}>Available</option>
+                            <option value="occupied" {% if room.status == 'occupied' %}selected{% endif %}>Occupied</option>
+                            <option value="maintenance" {% if room.status == 'maintenance' %}selected{% endif %}>Maintenance</option>
+                        </select>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Update Room</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Room Modals -->
+<div class="modal fade" id="deleteModal{{ room.room_id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Delete Room {{ room.room_number }}</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete Room <strong>{{ room.room_number }}</strong>?</p>
+                {% if room.occupants %}
+                <div class="alert alert-warning">
+                    <strong>Warning:</strong> This room has {{ room.occupants|length }} occupant(s). Deleting this room will remove all allocations.
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form action="{{ url_for('delete_room', room_id=room.room_id) }}" method="POST">
+                    <button type="submit" class="btn btn-danger">Delete Room</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

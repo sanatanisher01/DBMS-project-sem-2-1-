@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+
+{% block title %}Warden Dashboard - HostelMate{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h2>Welcome, {{ warden.full_name }}</h2>
+        <p class="text-muted">Department: {{ warden.department }} | Building: {{ warden.building_name }}</p>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Room Applications -->
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Pending Room Applications</h5>
+                <a href="{{ url_for('room_applications') }}" class="btn btn-sm btn-light">
+                    <i class="fas fa-external-link-alt me-1"></i> View All
+                </a>
+            </div>
+            <div class="card-body">
+                {% if applications %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Roll Number</th>
+                                    <th>Building</th>
+                                    <th>Room Type</th>
+                                    <th>Application Date</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for app in applications %}
+                                    <tr>
+                                        <td>{{ app.full_name }}</td>
+                                        <td>{{ app.roll_number }}</td>
+                                        <td>{{ app.building_name }}</td>
+                                        <td>{{ app.preferred_room_type|capitalize }}</td>
+                                        <td>{{ app.application_date }}</td>
+                                        <td>
+                                            <a href="{{ url_for('allocate_room', application_id=app.application_id) }}" class="btn btn-sm btn-primary">Allocate Room</a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-check-circle fa-4x text-muted mb-3"></i>
+                        <h5>No Pending Applications</h5>
+                        <p>There are no pending room applications at this time.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Complaints -->
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Active Complaints</h5>
+                <a href="{{ url_for('manage_complaints') }}" class="btn btn-sm btn-light">
+                    <i class="fas fa-external-link-alt me-1"></i> View All
+                </a>
+            </div>
+            <div class="card-body">
+                {% if complaints %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Room</th>
+                                    <th>Type</th>
+                                    <th>Priority</th>
+                                    <th>Submitted</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for complaint in complaints %}
+                                    <tr class="
+                                        {% if complaint.priority == 'high' %}table-danger
+                                        {% elif complaint.priority == 'medium' %}table-warning
+                                        {% else %}table-light{% endif %}
+                                    ">
+                                        <td>{{ complaint.full_name }}</td>
+                                        <td>{{ complaint.building_name }} - {{ complaint.room_number }}</td>
+                                        <td>{{ complaint.complaint_type|capitalize }}</td>
+                                        <td>
+                                            {% if complaint.priority == 'high' %}
+                                                <span class="badge bg-danger">High</span>
+                                            {% elif complaint.priority == 'medium' %}
+                                                <span class="badge bg-warning text-dark">Medium</span>
+                                            {% else %}
+                                                <span class="badge bg-info text-dark">Low</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ complaint.submitted_date }}</td>
+                                        <td>
+                                            {% if complaint.status == 'pending' %}
+                                                <span class="badge bg-secondary">Pending</span>
+                                            {% elif complaint.status == 'in_progress' %}
+                                                <span class="badge bg-primary">In Progress</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('resolve_complaint', complaint_id=complaint.complaint_id) }}" class="btn btn-sm btn-primary">Update</a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-check-circle fa-4x text-muted mb-3"></i>
+                        <h5>No Active Complaints</h5>
+                        <p>There are no active complaints at this time.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

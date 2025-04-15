@@ -1,0 +1,348 @@
+{% extends 'base.html' %}
+
+{% block title %}Fee Reports - HostelMate{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12 d-flex justify-content-between align-items-center">
+        <h2>Fee Reports</h2>
+        <div>
+            <button class="btn btn-outline-primary me-2">
+                <i class="fas fa-file-export"></i> Export
+            </button>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addFeeModal">
+                <i class="fas fa-plus"></i> Add Fee Record
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Options -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <form class="row g-3">
+                    <div class="col-md-3">
+                        <label for="buildingFilter" class="form-label">Building</label>
+                        <select class="form-select" id="buildingFilter">
+                            <option value="">All Buildings</option>
+                            <option value="1">Boys Hostel</option>
+                            <option value="2">Girls Hostel</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="feeTypeFilter" class="form-label">Fee Type</label>
+                        <select class="form-select" id="feeTypeFilter">
+                            <option value="">All Types</option>
+                            <option value="room_rent">Room Rent</option>
+                            <option value="mess_fee">Mess Fee</option>
+                            <option value="maintenance">Maintenance</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="statusFilter" class="form-label">Payment Status</label>
+                        <select class="form-select" id="statusFilter">
+                            <option value="">All Statuses</option>
+                            <option value="pending">Pending</option>
+                            <option value="paid">Paid</option>
+                            <option value="overdue">Overdue</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="dateFilter" class="form-label">Due Date</label>
+                        <input type="month" class="form-control" id="dateFilter">
+                    </div>
+                    <div class="col-12 text-end">
+                        <button type="submit" class="btn btn-primary">Apply Filters</button>
+                        <button type="reset" class="btn btn-outline-secondary">Reset</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Fee Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <h5 class="card-title">Total Fees</h5>
+                <h3 class="card-text">₹{{ (fee_records|sum(attribute='amount'))|round(2) }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <h5 class="card-title">Collected</h5>
+                <h3 class="card-text">₹{{ (fee_records|selectattr('payment_status', 'equalto', 'paid')|sum(attribute='amount'))|round(2) }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark">
+            <div class="card-body">
+                <h5 class="card-title">Pending</h5>
+                <h3 class="card-text">₹{{ (fee_records|selectattr('payment_status', 'equalto', 'pending')|sum(attribute='amount'))|round(2) }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <h5 class="card-title">Overdue</h5>
+                <h3 class="card-text">₹{{ (fee_records|selectattr('payment_status', 'equalto', 'overdue')|sum(attribute='amount'))|round(2) }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Fee Records Table -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Fee Records</h5>
+            </div>
+            <div class="card-body">
+                {% if fee_records %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Student</th>
+                                    <th>Roll Number</th>
+                                    <th>Room</th>
+                                    <th>Fee Type</th>
+                                    <th>Amount</th>
+                                    <th>Due Date</th>
+                                    <th>Status</th>
+                                    <th>Payment Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for fee in fee_records %}
+                                    <tr class="
+                                        {% if fee.payment_status == 'overdue' %}table-danger
+                                        {% elif fee.payment_status == 'pending' %}table-warning
+                                        {% elif fee.payment_status == 'paid' %}table-success
+                                        {% endif %}
+                                    ">
+                                        <td>{{ fee.fee_id }}</td>
+                                        <td>{{ fee.full_name }}</td>
+                                        <td>{{ fee.roll_number }}</td>
+                                        <td>{{ fee.building_name }} - {{ fee.room_number }}</td>
+                                        <td>{{ fee.fee_type|replace('_', ' ')|capitalize }}</td>
+                                        <td>₹{{ fee.amount }}</td>
+                                        <td>{{ fee.due_date }}</td>
+                                        <td>
+                                            {% if fee.payment_status == 'pending' %}
+                                                <span class="badge bg-warning text-dark">Pending</span>
+                                            {% elif fee.payment_status == 'paid' %}
+                                                <span class="badge bg-success">Paid</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Overdue</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ fee.payment_date if fee.payment_date else '-' }}</td>
+                                        <td>
+                                            <div class="dropdown">
+                                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                                    Actions
+                                                </button>
+                                                <ul class="dropdown-menu">
+                                                    {% if fee.payment_status != 'paid' %}
+                                                        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#markPaidModal{{ fee.fee_id }}">Mark as Paid</a></li>
+                                                    {% endif %}
+                                                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editFeeModal{{ fee.fee_id }}">Edit</a></li>
+                                                    <li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteFeeModal{{ fee.fee_id }}">Delete</a></li>
+                                                </ul>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center mt-4">
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Previous</a>
+                            </li>
+                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                            <li class="page-item"><a class="page-link" href="#">2</a></li>
+                            <li class="page-item"><a class="page-link" href="#">3</a></li>
+                            <li class="page-item">
+                                <a class="page-link" href="#">Next</a>
+                            </li>
+                        </ul>
+                    </nav>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-money-bill-wave fa-4x text-muted mb-3"></i>
+                        <h5>No Fee Records</h5>
+                        <p>There are no fee records in the system.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Fee Modal -->
+<div class="modal fade" id="addFeeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Add New Fee Record</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addFeeForm" action="{{ url_for('add_fee_record') }}" method="POST">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="studentId" class="form-label">Student</label>
+                            <select class="form-select" id="studentId" name="student_id" required onchange="loadStudentRooms(this.value)">
+                                <option value="" selected disabled>Select student</option>
+                                {% for student in students %}
+                                <option value="{{ student.student_id }}">{{ student.full_name }} ({{ student.roll_number }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="roomId" class="form-label">Room</label>
+                            <select class="form-select" id="roomId" name="room_id" required>
+                                <option value="" selected disabled>Select student first</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="feeType" class="form-label">Fee Type</label>
+                            <select class="form-select" id="feeType" name="fee_type" required>
+                                <option value="" selected disabled>Select fee type</option>
+                                <option value="room_rent">Room Rent</option>
+                                <option value="mess_fee">Mess Fee</option>
+                                <option value="maintenance">Maintenance</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="amount" class="form-label">Amount (₹)</label>
+                            <input type="number" class="form-control" id="amount" name="amount" step="0.01" required>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="dueDate" class="form-label">Due Date</label>
+                            <input type="date" class="form-control" id="dueDate" name="due_date" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="paymentStatus" class="form-label">Payment Status</label>
+                            <select class="form-select" id="paymentStatus" name="payment_status" required>
+                                <option value="pending" selected>Pending</option>
+                                <option value="paid">Paid</option>
+                                <option value="overdue">Overdue</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="addFeeForm" class="btn btn-primary">Add Fee Record</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Mark as Paid Modals -->
+{% for fee in fee_records %}
+{% if fee.payment_status != 'paid' %}
+<div class="modal fade" id="markPaidModal{{ fee.fee_id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">Mark Fee as Paid</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="markPaidForm{{ fee.fee_id }}" action="{{ url_for('mark_fee_paid', fee_id=fee.fee_id) }}" method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">Student</label>
+                        <p class="form-control-static">{{ fee.full_name }} ({{ fee.roll_number }})</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Fee Details</label>
+                        <p class="form-control-static">{{ fee.fee_type|replace('_', ' ')|capitalize }} - ₹{{ fee.amount }}</p>
+                    </div>
+                    <div class="mb-3">
+                        <label for="paymentMethod{{ fee.fee_id }}" class="form-label">Payment Method</label>
+                        <select class="form-select" id="paymentMethod{{ fee.fee_id }}" name="payment_method" required>
+                            <option value="cash">Cash</option>
+                            <option value="bank_transfer">Bank Transfer</option>
+                            <option value="upi">UPI</option>
+                            <option value="credit_card">Credit Card</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="transactionId{{ fee.fee_id }}" class="form-label">Transaction ID (Optional)</label>
+                        <input type="text" class="form-control" id="transactionId{{ fee.fee_id }}" name="transaction_id">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="markPaidForm{{ fee.fee_id }}" class="btn btn-success">Mark as Paid</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function loadStudentRooms(studentId) {
+    if (!studentId) return;
+
+    // Clear current options
+    const roomSelect = document.getElementById('roomId');
+    roomSelect.innerHTML = '<option value="" selected disabled>Loading rooms...</option>';
+
+    // Fetch rooms for the selected student
+    fetch(`/admin/get-student-rooms/${studentId}`)
+        .then(response => response.json())
+        .then(rooms => {
+            roomSelect.innerHTML = '';
+
+            if (rooms.length === 0) {
+                roomSelect.innerHTML = '<option value="" selected disabled>No rooms assigned</option>';
+                return;
+            }
+
+            roomSelect.innerHTML = '<option value="" selected disabled>Select room</option>';
+            rooms.forEach(room => {
+                const option = document.createElement('option');
+                option.value = room.room_id;
+                option.textContent = `${room.building_name} - ${room.room_number}`;
+                roomSelect.appendChild(option);
+            });
+        })
+        .catch(error => {
+            console.error('Error loading rooms:', error);
+            roomSelect.innerHTML = '<option value="" selected disabled>Error loading rooms</option>';
+        });
+}
+</script>
+{% endblock %}

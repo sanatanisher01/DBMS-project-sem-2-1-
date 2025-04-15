@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}Allocate Room - HostelMate{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Allocate Room</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <h5 class="alert-heading">Application Details</h5>
+                    <p><strong>Student:</strong> {{ application.full_name }} ({{ application.roll_number }})</p>
+                    <p><strong>Building:</strong> {{ application.building_name }}</p>
+                    <p><strong>Room Type:</strong> {{ application.preferred_room_type|capitalize }}</p>
+                    {% if application.preferred_floor %}
+                        <p><strong>Preferred Floor:</strong> {{ application.preferred_floor }}</p>
+                    {% endif %}
+                    {% if application.roommate_preference_id %}
+                        <p><strong>Roommate Preference:</strong> Yes</p>
+                    {% endif %}
+                    <p><strong>Application Date:</strong> {{ application.application_date }}</p>
+                </div>
+                
+                {% if available_rooms %}
+                    <form method="POST" action="{{ url_for('allocate_room', application_id=application.application_id) }}">
+                        <div class="mb-3">
+                            <label for="room_id" class="form-label">Select Room</label>
+                            <select class="form-select" id="room_id" name="room_id" required>
+                                <option value="" selected disabled>Select a room</option>
+                                {% for room in available_rooms %}
+                                    <option value="{{ room.room_id }}">
+                                        Room {{ room.room_number }} (Floor {{ room.floor_number }}) - {{ room.room_type|capitalize }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="allocation_notes" class="form-label">Allocation Notes (Optional)</label>
+                            <textarea class="form-control" id="allocation_notes" name="allocation_notes" rows="3"></textarea>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Allocate Room</button>
+                            <a href="{{ url_for('warden_dashboard') }}" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                    </form>
+                {% else %}
+                    <div class="alert alert-warning">
+                        <h5 class="alert-heading">No Available Rooms!</h5>
+                        <p>There are no available rooms matching the student's preferences.</p>
+                        <hr>
+                        <p class="mb-0">Please check back later or consider rejecting the application.</p>
+                    </div>
+                    <div class="d-grid">
+                        <a href="{{ url_for('warden_dashboard') }}" class="btn btn-primary">Back to Dashboard</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

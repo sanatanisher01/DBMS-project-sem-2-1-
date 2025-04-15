@@ -1,0 +1,4 @@
+This is a placeholder file for the img directory.
+In a real application, you would have actual image files here.
+
+For the hostel.jpg image, you can use any royalty-free image of a hostel or dormitory building.

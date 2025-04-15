@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block title %}View Notice - HostelMate{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12 d-flex justify-content-between align-items-center">
+        <h2>View Notice</h2>
+        <a href="{{ url_for('manage_notices') }}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-2"></i> Back to Notices
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">{{ notice.title }}</h5>
+                <span class="badge bg-light text-dark">
+                    Posted on {{ notice.posted_at }}
+                </span>
+            </div>
+            <div class="card-body">
+                {% if notice.image_url %}
+                <div class="text-center mb-4">
+                    <img src="{{ notice.image_url }}" alt="{{ notice.title }}" class="img-fluid rounded" style="max-height: 400px;">
+                </div>
+                {% endif %}
+                
+                <div class="notice-content mb-4">
+                    {{ notice.content|safe }}
+                </div>
+                
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <p><strong>Target Building:</strong> 
+                            {% if notice.building_name %}
+                                {{ notice.building_name }}
+                            {% else %}
+                                All Buildings
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Expiry Date:</strong> 
+                            {% if notice.expiry_date %}
+                                {{ notice.expiry_date }}
+                            {% else %}
+                                No Expiry
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Status:</strong> 
+                            {% if notice.is_active %}
+                                <span class="badge bg-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Posted By:</strong> {{ notice.posted_by_name }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer d-flex justify-content-between">
+                <a href="{{ url_for('edit_notice', notice_id=notice.notice_id) }}" class="btn btn-primary">
+                    <i class="fas fa-edit me-2"></i> Edit Notice
+                </a>
+                <a href="{{ url_for('toggle_notice', notice_id=notice.notice_id) }}" class="btn btn-{{ 'danger' if notice.is_active else 'success' }}">
+                    <i class="fas fa-{{ 'times' if notice.is_active else 'check' }} me-2"></i> 
+                    {{ 'Deactivate' if notice.is_active else 'Activate' }} Notice
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

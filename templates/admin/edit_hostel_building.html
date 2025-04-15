@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Hostel Building - HostelMate{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12 d-flex justify-content-between align-items-center">
+        <h2>Edit Hostel Building</h2>
+        <a href="{{ url_for('manage_hostels') }}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-2"></i> Back to Hostels
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Edit {{ building.building_name }}</h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('edit_hostel_building', building_id=building.building_id) }}" method="POST">
+                    <div class="mb-3">
+                        <label for="building_name" class="form-label">Building Name</label>
+                        <input type="text" class="form-control" id="building_name" name="building_name" value="{{ building.building_name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="location" class="form-label">Location</label>
+                        <input type="text" class="form-control" id="location" name="location" value="{{ building.location }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="gender" class="form-label">Gender</label>
+                        <select class="form-select" id="gender" name="gender" required>
+                            <option value="male" {% if building.gender == 'male' %}selected{% endif %}>Male</option>
+                            <option value="female" {% if building.gender == 'female' %}selected{% endif %}>Female</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="floors" class="form-label">Number of Floors</label>
+                        <input type="number" class="form-control" id="floors" name="floors" min="1" value="{{ building.floors }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3">{{ building.description }}</textarea>
+                    </div>
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('manage_hostels') }}" class="btn btn-secondary me-md-2">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Update Building</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

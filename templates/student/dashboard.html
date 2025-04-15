@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+
+{% block title %}Student Dashboard - HostelMate{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h2>Welcome, {{ student.full_name }}</h2>
+        <p class="text-muted">Roll Number: {{ student.roll_number }} | Department: {{ student.department }}</p>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Room Information -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Room Information</h5>
+            </div>
+            <div class="card-body">
+                {% if room_allocation %}
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="fas fa-building fa-2x text-primary me-3"></i>
+                        <div>
+                            <h6 class="mb-0">{{ room_allocation.building_name }}</h6>
+                            <p class="text-muted mb-0">Hostel Building</p>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="fas fa-door-open fa-2x text-primary me-3"></i>
+                        <div>
+                            <h6 class="mb-0">Room {{ room_allocation.room_number }}</h6>
+                            <p class="text-muted mb-0">{{ room_allocation.room_type|capitalize }} Room</p>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-calendar-alt fa-2x text-primary me-3"></i>
+                        <div>
+                            <h6 class="mb-0">{{ room_allocation.start_date }}</h6>
+                            <p class="text-muted mb-0">Allocation Date</p>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-home fa-4x text-muted mb-3"></i>
+                        <h5>No Room Allocated</h5>
+                        <p>You haven't been allocated a room yet.</p>
+                        <a href="{{ url_for('apply_room') }}" class="btn btn-primary">Apply for Room</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Complaints -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Recent Complaints</h5>
+                <a href="{{ url_for('submit_complaint') }}" class="btn btn-sm btn-light">New Complaint</a>
+            </div>
+            <div class="card-body">
+                {% if complaints %}
+                    <div class="list-group">
+                        {% for complaint in complaints %}
+                            <div class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{ complaint.complaint_type|capitalize }}</h6>
+                                    <small>
+                                        {% if complaint.status == 'pending' %}
+                                            <span class="badge bg-warning">Pending</span>
+                                        {% elif complaint.status == 'in_progress' %}
+                                            <span class="badge bg-info">In Progress</span>
+                                        {% elif complaint.status == 'resolved' %}
+                                            <span class="badge bg-success">Resolved</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Rejected</span>
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                <p class="mb-1">{{ complaint.description }}</p>
+                                <small class="text-muted">Submitted on {{ complaint.submitted_date }}</small>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-check-circle fa-4x text-muted mb-3"></i>
+                        <h5>No Active Complaints</h5>
+                        <p>You don't have any pending complaints.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Notices -->
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-bullhorn me-2"></i> Important Notices</h5>
+            </div>
+            <div class="card-body">
+                {% if notices %}
+                    <div class="row">
+                        {% for notice in notices %}
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100 border-0 shadow-sm">
+                                    {% if notice.image_url %}
+                                    <img src="{{ notice.image_url }}" class="card-img-top" alt="{{ notice.title }}" style="height: 180px; object-fit: cover;">
+                                    {% endif %}
+                                    <div class="card-body">
+                                        <h5 class="card-title">{{ notice.title }}</h5>
+                                        <div class="card-text notice-content mb-3" style="max-height: 100px; overflow: hidden;">
+                                            {{ notice.content|safe|truncate(150) }}
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <small class="text-muted">Posted on {{ notice.posted_at }}</small>
+                                            <a href="{{ url_for('view_student_notice', notice_id=notice.notice_id) }}" class="btn btn-sm btn-outline-primary">Read More</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-clipboard fa-4x text-muted mb-3"></i>
+                        <h5>No Notices</h5>
+                        <p>There are no notices to display at this time.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Fee Information -->
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Fee Information</h5>
+            </div>
+            <div class="card-body">
+                {% if fees %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Fee Type</th>
+                                    <th>Amount</th>
+                                    <th>Due Date</th>
+                                    <th>Status</th>
+                                    <th>Payment Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for fee in fees %}
+                                    <tr>
+                                        <td>{{ fee.fee_type|replace('_', ' ')|capitalize }}</td>
+                                        <td>₹{{ fee.amount }}</td>
+                                        <td>{{ fee.due_date }}</td>
+                                        <td>
+                                            {% if fee.payment_status == 'pending' %}
+                                                <span class="badge bg-warning">Pending</span>
+                                            {% elif fee.payment_status == 'paid' %}
+                                                <span class="badge bg-success">Paid</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Overdue</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ fee.payment_date if fee.payment_date else '-' }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-money-bill-wave fa-4x text-muted mb-3"></i>
+                        <h5>No Fee Records</h5>
+                        <p>You don't have any fee records yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
