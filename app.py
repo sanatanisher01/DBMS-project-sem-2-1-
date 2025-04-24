@@ -670,19 +670,34 @@ def admin_dashboard():
     fee_stats = cursor.fetchone()
 
     # Get complaint statistics
-    cursor.execute('''
-        SELECT
-            COUNT(*) AS total_complaints,
-            SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending_complaints,
-            SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) AS in_progress_complaints,
-            SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END) AS resolved_complaints,
-            COALESCE(AVG(CASE
-                WHEN status = 'resolved' AND resolved_date IS NOT NULL
-                THEN (julianday(resolved_date) - julianday(submitted_date)) * 24
-                ELSE NULL
-            END), 0) AS avg_resolution_time_hours
-        FROM complaints
-    ''')
+    if is_postgres():
+        cursor.execute('''
+            SELECT
+                COUNT(*) AS total_complaints,
+                SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending_complaints,
+                SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) AS in_progress_complaints,
+                SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END) AS resolved_complaints,
+                COALESCE(AVG(CASE
+                    WHEN status = 'resolved' AND resolved_date IS NOT NULL
+                    THEN EXTRACT(EPOCH FROM (resolved_date - submitted_date)) / 3600
+                    ELSE NULL
+                END), 0) AS avg_resolution_time_hours
+            FROM complaints
+        ''')
+    else:
+        cursor.execute('''
+            SELECT
+                COUNT(*) AS total_complaints,
+                SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending_complaints,
+                SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) AS in_progress_complaints,
+                SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END) AS resolved_complaints,
+                COALESCE(AVG(CASE
+                    WHEN status = 'resolved' AND resolved_date IS NOT NULL
+                    THEN (julianday(resolved_date) - julianday(submitted_date)) * 24
+                    ELSE NULL
+                END), 0) AS avg_resolution_time_hours
+            FROM complaints
+        ''')
     complaint_stats = cursor.fetchone()
 
     cursor.close()
