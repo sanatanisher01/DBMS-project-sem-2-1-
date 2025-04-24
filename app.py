@@ -101,7 +101,8 @@ def login():
 
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute('SELECT * FROM users WHERE username = ?', (username,))
+        query = adapt_query_for_db('SELECT * FROM users WHERE username = ?')
+        cursor.execute(query, (username,))
         user = cursor.fetchone()
         cursor.close()
         conn.close()
