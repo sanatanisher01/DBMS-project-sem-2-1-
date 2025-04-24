@@ -37,7 +37,7 @@
                 </button>
             </li>
         </ul>
-        
+
         <div class="tab-content" id="userTabsContent">
             <!-- All Users Tab -->
             <div class="tab-pane fade show active" id="all" role="tabpanel">
@@ -89,7 +89,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Students Tab -->
             <div class="tab-pane fade" id="students" role="tabpanel">
                 <div class="card border-top-0 rounded-top-0">
@@ -132,7 +132,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Wardens Tab -->
             <div class="tab-pane fade" id="wardens" role="tabpanel">
                 <div class="card border-top-0 rounded-top-0">
@@ -173,7 +173,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Admins Tab -->
             <div class="tab-pane fade" id="admins" role="tabpanel">
                 <div class="card border-top-0 rounded-top-0">
@@ -237,7 +237,7 @@
                             </select>
                         </div>
                     </div>
-                    
+
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label for="fullName" class="form-label">Full Name</label>
@@ -248,7 +248,7 @@
                             <input type="email" class="form-control" id="email" name="email" required>
                         </div>
                     </div>
-                    
+
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label for="username" class="form-label">Username</label>
@@ -259,14 +259,14 @@
                             <input type="password" class="form-control" id="password" name="password" required>
                         </div>
                     </div>
-                    
+
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label for="phoneNumber" class="form-label">Phone Number</label>
                             <input type="text" class="form-control" id="phoneNumber" name="phone_number">
                         </div>
                     </div>
-                    
+
                     <!-- Student-specific fields -->
                     <div id="studentFields" style="display: none;">
                         <hr>
@@ -301,7 +301,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Warden-specific fields -->
                     <div id="wardenFields" style="display: none;">
                         <hr>
@@ -317,7 +317,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Admin-specific fields -->
                     <div id="adminFields" style="display: none;">
                         <hr>
@@ -333,7 +333,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary">Add User</button>
+                <button type="button" class="btn btn-primary" id="submitAddUserBtn">Add User</button>
             </div>
         </div>
     </div>
@@ -348,12 +348,12 @@
             const studentFields = document.getElementById('studentFields');
             const wardenFields = document.getElementById('wardenFields');
             const adminFields = document.getElementById('adminFields');
-            
+
             // Hide all fields first
             studentFields.style.display = 'none';
             wardenFields.style.display = 'none';
             adminFields.style.display = 'none';
-            
+
             // Show fields based on selection
             if (this.value === 'student') {
                 studentFields.style.display = 'block';
@@ -362,6 +362,17 @@
             } else if (this.value === 'admin') {
                 adminFields.style.display = 'block';
             }
+        });
+
+        // Handle Add User form submission
+        document.getElementById('submitAddUserBtn').addEventListener('click', function() {
+            const form = document.getElementById('addUserForm');
+            const formData = new FormData(form);
+
+            // Submit the form
+            form.action = '/admin/add-user';
+            form.method = 'POST';
+            form.submit();
         });
     });
 </script>

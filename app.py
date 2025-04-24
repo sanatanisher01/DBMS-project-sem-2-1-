@@ -735,6 +735,93 @@ def manage_users():
 
     return render_template('admin/manage_users.html', users=users)
 
+@app.route('/admin/add-user', methods=['POST'])
+@login_required
+@role_required(['admin'])
+def add_user():
+    try:
+        # Get form data
+        user_type = request.form.get('user_type')
+        full_name = request.form.get('full_name')
+        email = request.form.get('email')
+        username = request.form.get('username')
+        password = request.form.get('password')
+        phone_number = request.form.get('phone_number')
+
+        # Hash the password
+        hashed_password = hashlib.sha256(password.encode()).hexdigest()
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Check if username already exists
+        query = adapt_query_for_db('SELECT * FROM users WHERE username = ?')
+        cursor.execute(query, (username,))
+        existing_user = cursor.fetchone()
+
+        if existing_user:
+            cursor.close()
+            conn.close()
+            flash('Username already exists. Please choose a different username.', 'error')
+            return redirect(url_for('manage_users'))
+
+        # Insert user into users table
+        query = adapt_query_for_db('''
+            INSERT INTO users (username, password, email, full_name, user_type, phone)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''')
+        cursor.execute(query, (username, hashed_password, email, full_name, user_type, phone_number))
+
+        # Get the user_id
+        if is_postgres():
+            user_id = cursor.fetchone()[0]
+        else:
+            user_id = cursor.lastrowid
+
+        # Insert additional details based on user type
+        if user_type == 'student':
+            roll_number = request.form.get('roll_number')
+            department = request.form.get('department')
+            year_of_study = request.form.get('year_of_study')
+            gender = request.form.get('gender')
+
+            query = adapt_query_for_db('''
+                INSERT INTO students (user_id, roll_number, department, year_of_study, gender)
+                VALUES (?, ?, ?, ?, ?)
+            ''')
+            cursor.execute(query, (user_id, roll_number, department, year_of_study, gender))
+
+        elif user_type == 'warden':
+            department = request.form.get('warden_department')
+            office_location = request.form.get('office_location')
+
+            query = adapt_query_for_db('''
+                INSERT INTO wardens (user_id, department, office_location)
+                VALUES (?, ?, ?)
+            ''')
+            cursor.execute(query, (user_id, department, office_location))
+
+        elif user_type == 'admin':
+            role = request.form.get('admin_role')
+
+            query = adapt_query_for_db('''
+                INSERT INTO admins (user_id, role)
+                VALUES (?, ?)
+            ''')
+            cursor.execute(query, (user_id, role))
+
+        # Commit changes
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        flash('User added successfully!', 'success')
+        return redirect(url_for('manage_users'))
+
+    except Exception as e:
+        flash(f'Error adding user: {str(e)}', 'error')
+        return redirect(url_for('manage_users'))
+
 @app.route('/admin/fee-reports')
 @login_required
 @role_required(['admin'])
