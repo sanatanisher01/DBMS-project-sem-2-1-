@@ -766,16 +766,18 @@ def add_user():
             return redirect(url_for('manage_users'))
 
         # Insert user into users table
-        query = adapt_query_for_db('''
-            INSERT INTO users (username, password, email, full_name, user_type, phone_number)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''')
-        cursor.execute(query, (username, hashed_password, email, full_name, user_type, phone_number))
-
-        # Get the user_id
         if is_postgres():
+            cursor.execute('''
+                INSERT INTO users (username, password, email, full_name, user_type, phone_number)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                RETURNING user_id
+            ''', (username, hashed_password, email, full_name, user_type, phone_number))
             user_id = cursor.fetchone()[0]
         else:
+            cursor.execute('''
+                INSERT INTO users (username, password, email, full_name, user_type, phone_number)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (username, hashed_password, email, full_name, user_type, phone_number))
             user_id = cursor.lastrowid
 
         # Insert additional details based on user type
