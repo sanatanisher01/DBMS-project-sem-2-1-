@@ -58,7 +58,7 @@ def inject_template_context():
             LEFT JOIN hostel_buildings hb ON hb.warden_id = w.warden_id
             WHERE w.user_id = ?
         ''')
-    cursor.execute(query, (session.get('user_id'),))
+        cursor.execute(query, (session.get('user_id'),))
         warden = cursor.fetchone()
 
         if warden and warden['building_id']:
@@ -71,7 +71,7 @@ def inject_template_context():
                 JOIN rooms r ON ra.room_id = r.room_id
                 WHERE r.building_id = ? AND vr.status = 'pending'
             ''')
-    cursor.execute(query, (warden['building_id'],))
+            cursor.execute(query, (warden['building_id'],))
             result = cursor.fetchone()
             context['pending_visitor_count'] = result['count'] if result else 0
 
@@ -218,7 +218,7 @@ def student_dashboard():
             ORDER BY hn.posted_at DESC
             LIMIT 6
         ''')
-    cursor.execute(query, (building_id,))
+        cursor.execute(query, (building_id,))
     else:
         query = adapt_query_for_db('''
             SELECT hn.*, u.full_name as posted_by_name, hb.building_name
@@ -227,11 +227,11 @@ def student_dashboard():
             LEFT JOIN hostel_buildings hb ON hn.building_id = hb.building_id
             WHERE hn.is_active = 1
             AND (hn.building_id IS NULL OR hn.building_id = ?)
-            AND (hn.expiry_date IS NULL OR hn.expiry_date >= date('now')
-    cursor.execute(query))
+            AND (hn.expiry_date IS NULL OR hn.expiry_date >= date('now'))
             ORDER BY hn.posted_at DESC
             LIMIT 6
-        ''', (building_id,))
+        ''')
+        cursor.execute(query, (building_id,))
     notices = cursor.fetchall()
 
     cursor.close()
