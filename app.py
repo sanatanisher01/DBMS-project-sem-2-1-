@@ -767,7 +767,7 @@ def add_user():
 
         # Insert user into users table
         query = adapt_query_for_db('''
-            INSERT INTO users (username, password, email, full_name, user_type, phone)
+            INSERT INTO users (username, password, email, full_name, user_type, phone_number)
             VALUES (?, ?, ?, ?, ?, ?)
         ''')
         cursor.execute(query, (username, hashed_password, email, full_name, user_type, phone_number))
