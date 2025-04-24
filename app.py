@@ -8,6 +8,7 @@ import qrcode
 from werkzeug.security import generate_password_hash, check_password_hash
 import datetime
 import uuid
+import hashlib
 from dotenv import load_dotenv
 
 # Load environment variables from .env file if it exists
@@ -102,19 +103,35 @@ def login():
         conn = get_db_connection()
         cursor = conn.cursor()
         query = adapt_query_for_db('SELECT * FROM users WHERE username = ?')
+        print(f"Debug - Username: {username}")
+        print(f"Debug - Query: {query}")
         cursor.execute(query, (username,))
         user = cursor.fetchone()
+        print(f"Debug - User found: {user is not None}")
         cursor.close()
         conn.close()
 
-        if user and check_password_hash(user['password'], password):
-            session['user_id'] = user['user_id']
-            session['username'] = user['username']
-            session['user_type'] = user['user_type']
+        if user:
+            # Check if password is hashed with SHA-256 (from init_db.py)
+            sha256_hashed = hashlib.sha256(password.encode()).hexdigest()
 
-            flash('Login successful!', 'success')
-            return redirect(url_for('dashboard'))
+            print(f"Debug - Input password: {password}")
+            print(f"Debug - SHA256 hash: {sha256_hashed}")
+            print(f"Debug - Stored password hash: {user['password']}")
+
+            # Try both methods of password verification
+            if user['password'] == sha256_hashed or check_password_hash(user['password'], password):
+                session['user_id'] = user['user_id']
+                session['username'] = user['username']
+                session['user_type'] = user['user_type']
+
+                flash('Login successful!', 'success')
+                return redirect(url_for('dashboard'))
+            else:
+                print("Debug - Password verification failed")
+                flash('Invalid username or password', 'error')
         else:
+            print("Debug - User not found")
             flash('Invalid username or password', 'error')
 
     return render_template('login.html')
