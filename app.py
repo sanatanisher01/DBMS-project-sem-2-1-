@@ -820,14 +820,14 @@ def add_user():
                 VALUES (%s, %s, %s, %s, %s, %s)
                 RETURNING user_id
             ''')
-    cursor.execute(query, (username, hashed_password, email, full_name, user_type, phone_number))
+            cursor.execute(query, (username, hashed_password, email, full_name, user_type, phone_number))
             user_id = cursor.fetchone()[0]
         else:
             query = adapt_query_for_db('''
                 INSERT INTO users (username, password, email, full_name, user_type, phone_number)
                 VALUES (?, ?, ?, ?, ?, ?)
             ''')
-    cursor.execute(query, (username, hashed_password, email, full_name, user_type, phone_number))
+            cursor.execute(query, (username, hashed_password, email, full_name, user_type, phone_number))
             user_id = cursor.lastrowid
 
         # Insert additional details based on user type
@@ -952,9 +952,9 @@ def visitor_records():
         JOIN room_allocations ra ON s.student_id = ra.student_id
         JOIN rooms r ON ra.room_id = r.room_id
         WHERE r.building_id = ? AND vr.status IN ('checked_in', 'checked_out', 'overstayed')
-    cursor.execute(query)
         ORDER BY vr.check_in_time DESC
-    ''', (warden['building_id'],))
+    ''')
+    cursor.execute(query, (warden['building_id'],))
     visitors = cursor.fetchall()
 
     # Get all students in the warden's building for the add visitor form
@@ -1000,7 +1000,7 @@ def add_visitor():
             (student_id, visitor_name, visitor_phone, relation, expected_check_out_time, purpose, approved_by, status)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ''')
-    cursor.execute(query, (student_id, visitor_name, visitor_phone, relation, expected_checkout, purpose, user_id, 'checked_in'))
+        cursor.execute(query, (student_id, visitor_name, visitor_phone, relation, expected_checkout, purpose, user_id, 'checked_in'))
 
         conn.commit()
         flash('Visitor record added successfully!', 'success')
@@ -1025,7 +1025,7 @@ def checkout_visitor(visitor_id):
             SET status = 'checked_out', actual_check_out_time = CURRENT_TIMESTAMP
             WHERE visitor_id = ?
         ''')
-    cursor.execute(query, (visitor_id,))
+        cursor.execute(query, (visitor_id,))
 
         conn.commit()
         flash('Visitor checked out successfully!', 'success')
@@ -1052,7 +1052,7 @@ def approve_visitor(visitor_id):
             SET status = 'checked_in', approved_by = ?
             WHERE visitor_id = ?
         ''')
-    cursor.execute(query, (user_id, visitor_id))
+        cursor.execute(query, (user_id, visitor_id))
 
         conn.commit()
         flash('Visitor request approved successfully!', 'success')
@@ -1079,7 +1079,7 @@ def reject_visitor(visitor_id):
             SET status = 'rejected', approved_by = ?
             WHERE visitor_id = ?
         ''')
-    cursor.execute(query, (user_id, visitor_id))
+        cursor.execute(query, (user_id, visitor_id))
 
         conn.commit()
         flash('Visitor request rejected!', 'success')
@@ -1200,7 +1200,7 @@ def register_visitor(building_id):
 
         # Validate student exists
         query = adapt_query_for_db('SELECT * FROM students WHERE student_id = ?')
-    cursor.execute(query, (student_id,))
+        cursor.execute(query, (student_id,))
         student = cursor.fetchone()
 
         if not student:
@@ -1238,12 +1238,12 @@ def register_visitor(building_id):
             (student_id, visitor_name, visitor_phone, relation, expected_check_out_time, purpose, qr_code_hash, status)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ''')
-    cursor.execute(query, (student_id, visitor_name, visitor_phone, relation, expected_checkout, purpose, qr_code_hash, 'pending'))
+        cursor.execute(query, (student_id, visitor_name, visitor_phone, relation, expected_checkout, purpose, qr_code_hash, 'pending'))
 
         # Get the inserted visitor record
         visitor_id = cursor.lastrowid
         query = adapt_query_for_db('SELECT * FROM visitor_records WHERE visitor_id = ?')
-    cursor.execute(query, (visitor_id,))
+        cursor.execute(query, (visitor_id,))
         visitor = cursor.fetchone()
 
         # Get student name
@@ -1253,7 +1253,7 @@ def register_visitor(building_id):
             JOIN users u ON s.user_id = u.user_id
             WHERE s.student_id = ?
         ''')
-    cursor.execute(query, (student_id,))
+        cursor.execute(query, (student_id,))
         student_result = cursor.fetchone()
         student_name = student_result['full_name'] if student_result else 'Unknown'
 
@@ -1333,7 +1333,7 @@ def create_notice():
             (title, content, image_url, building_id, posted_by, expiry_date, is_active)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         ''')
-    cursor.execute(query, (title, content, image_url, building_id, user_id, expiry_date, True))
+        cursor.execute(query, (title, content, image_url, building_id, user_id, expiry_date, True))
 
         conn.commit()
         flash('Notice published successfully!', 'success')
@@ -1480,7 +1480,7 @@ def toggle_notice(notice_id):
 
     try:
         query = adapt_query_for_db('UPDATE hostel_notices SET is_active = ? WHERE notice_id = ?')
-    cursor.execute(query, (new_status, notice_id))
+        cursor.execute(query, (new_status, notice_id))
         conn.commit()
         status_text = 'activated' if new_status else 'deactivated'
         flash(f'Notice {status_text} successfully!', 'success')
@@ -1692,7 +1692,7 @@ def add_hostel_building():
             (building_name, location, gender, floors, description, gender_type, total_rooms, address)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ''')
-    cursor.execute(query, (building_name, location, gender, floors, description, gender, 0, location))
+        cursor.execute(query, (building_name, location, gender, floors, description, gender, 0, location))
 
         conn.commit()
         flash('Hostel building added successfully!', 'success')
@@ -1724,7 +1724,7 @@ def edit_hostel_building(building_id):
                 SET building_name = ?, location = ?, gender = ?, floors = ?, description = ?, gender_type = ?, address = ?
                 WHERE building_id = ?
             ''')
-    cursor.execute(query, (building_name, location, gender, floors, description, gender, location, building_id))
+            cursor.execute(query, (building_name, location, gender, floors, description, gender, location, building_id))
 
             conn.commit()
             flash('Hostel building updated successfully!', 'success')
