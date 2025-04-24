@@ -52,24 +52,26 @@ def inject_template_context():
         cursor = conn.cursor()
 
         # Get warden's building
-        cursor.execute('''
+        query = adapt_query_for_db('''
             SELECT w.*, hb.building_id
             FROM wardens w
             LEFT JOIN hostel_buildings hb ON hb.warden_id = w.warden_id
             WHERE w.user_id = ?
-        ''', (session.get('user_id'),))
+        ''')
+    cursor.execute(query, (session.get('user_id'),))
         warden = cursor.fetchone()
 
         if warden and warden['building_id']:
             # Count pending visitor approvals
-            cursor.execute('''
+            query = adapt_query_for_db('''
                 SELECT COUNT(*) as count
                 FROM visitor_records vr
                 JOIN students s ON vr.student_id = s.student_id
                 JOIN room_allocations ra ON s.student_id = ra.student_id
                 JOIN rooms r ON ra.room_id = r.room_id
                 WHERE r.building_id = ? AND vr.status = 'pending'
-            ''', (warden['building_id'],))
+            ''')
+    cursor.execute(query, (warden['building_id'],))
             result = cursor.fetchone()
             context['pending_visitor_count'] = result['count'] if result else 0
 
@@ -205,7 +207,7 @@ def student_dashboard():
 
     # Get notices for the student's building or general notices
     if is_postgres():
-        cursor.execute('''
+        query = adapt_query_for_db('''
             SELECT hn.*, u.full_name as posted_by_name, hb.building_name
             FROM hostel_notices hn
             JOIN users u ON hn.posted_by = u.user_id
@@ -215,16 +217,18 @@ def student_dashboard():
             AND (hn.expiry_date IS NULL OR hn.expiry_date >= CURRENT_DATE)
             ORDER BY hn.posted_at DESC
             LIMIT 6
-        ''', (building_id,))
+        ''')
+    cursor.execute(query, (building_id,))
     else:
-        cursor.execute('''
+        query = adapt_query_for_db('''
             SELECT hn.*, u.full_name as posted_by_name, hb.building_name
             FROM hostel_notices hn
             JOIN users u ON hn.posted_by = u.user_id
             LEFT JOIN hostel_buildings hb ON hn.building_id = hb.building_id
             WHERE hn.is_active = 1
             AND (hn.building_id IS NULL OR hn.building_id = ?)
-            AND (hn.expiry_date IS NULL OR hn.expiry_date >= date('now'))
+            AND (hn.expiry_date IS NULL OR hn.expiry_date >= date('now')
+    cursor.execute(query))
             ORDER BY hn.posted_at DESC
             LIMIT 6
         ''', (building_id,))
@@ -250,23 +254,26 @@ def apply_room():
     cursor = conn.cursor()
 
     # Get student details
-    cursor.execute('SELECT * FROM students WHERE user_id = ?', (user_id,))
+    query = adapt_query_for_db('SELECT * FROM students WHERE user_id = ?')
+    cursor.execute(query, (user_id,))
     student = cursor.fetchone()
 
     # Get hostel buildings
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT * FROM hostel_buildings
         WHERE gender_type = ? OR gender_type = 'mixed'
-    ''', (student['gender'],))
+    ''')
+    cursor.execute(query, (student['gender'],))
     buildings = cursor.fetchall()
 
     # Get potential roommates (same gender)
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT s.student_id, u.full_name, s.roll_number
         FROM students s
         JOIN users u ON s.user_id = u.user_id
         WHERE s.gender = ? AND s.student_id != ?
-    ''', (student['gender'], student['student_id']))
+    ''')
+    cursor.execute(query, (student['gender'], student['student_id']))
     potential_roommates = cursor.fetchall()
 
     if request.method == 'POST':
@@ -275,11 +282,12 @@ def apply_room():
         preferred_floor = request.form.get('preferred_floor')
         roommate_preference = request.form.get('roommate_preference')
 
-        cursor.execute('''
+        query = adapt_query_for_db('''
             INSERT INTO room_applications
             (student_id, preferred_building_id, preferred_room_type, preferred_floor, roommate_preference_id)
             VALUES (?, ?, ?, ?, ?)
-        ''', (
+        ''')
+        cursor.execute(query, (
             student['student_id'],
             building_id,
             room_type,
@@ -308,16 +316,18 @@ def submit_complaint():
     cursor = conn.cursor()
 
     # Get student details
-    cursor.execute('SELECT * FROM students WHERE user_id = ?', (user_id,))
+    query = adapt_query_for_db('SELECT * FROM students WHERE user_id = ?')
+    cursor.execute(query, (user_id,))
     student = cursor.fetchone()
 
     # Get student's room
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT ra.*, r.*
         FROM room_allocations ra
         JOIN rooms r ON ra.room_id = r.room_id
         WHERE ra.student_id = ? AND ra.status = 'active'
-    ''', (student['student_id'],))
+    ''')
+    cursor.execute(query, (student['student_id'],))
     room = cursor.fetchone()
 
     if not room:
@@ -329,11 +339,12 @@ def submit_complaint():
         description = request.form['description']
         priority = request.form['priority']
 
-        cursor.execute('''
+        query = adapt_query_for_db('''
             INSERT INTO complaints
             (student_id, room_id, complaint_type, description, priority)
             VALUES (?, ?, ?, ?, ?)
-        ''', (
+        ''')
+        cursor.execute(query, (
             student['student_id'],
             room['room_id'],
             complaint_type,
@@ -361,17 +372,18 @@ def warden_dashboard():
     cursor = conn.cursor()
 
     # Get warden details
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT w.*, u.*, hb.building_id, hb.building_name
         FROM wardens w
         JOIN users u ON w.user_id = u.user_id
         LEFT JOIN hostel_buildings hb ON hb.warden_id = w.warden_id
         WHERE w.user_id = ?
-    ''', (user_id,))
+    ''')
+    cursor.execute(query, (user_id,))
     warden = cursor.fetchone()
 
     # Get pending room applications
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT ra.*, s.roll_number, u.full_name, hb.building_name
         FROM room_applications ra
         JOIN students s ON ra.student_id = s.student_id
@@ -379,11 +391,12 @@ def warden_dashboard():
         JOIN hostel_buildings hb ON ra.preferred_building_id = hb.building_id
         WHERE hb.warden_id = ? AND ra.status = 'pending'
         ORDER BY ra.application_date ASC
-    ''', (warden['warden_id'],))
+    ''')
+    cursor.execute(query, (warden['warden_id'],))
     applications = cursor.fetchall()
 
     # Get pending complaints
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT c.*, u.full_name, r.room_number, hb.building_name
         FROM complaints c
         JOIN students s ON c.student_id = s.student_id
@@ -392,7 +405,8 @@ def warden_dashboard():
         JOIN hostel_buildings hb ON r.building_id = hb.building_id
         WHERE hb.warden_id = ? AND c.status != 'resolved'
         ORDER BY c.priority DESC, c.submitted_date ASC
-    ''', (warden['warden_id'],))
+    ''')
+    cursor.execute(query, (warden['warden_id'],))
     complaints = cursor.fetchall()
 
     cursor.close()
@@ -413,14 +427,15 @@ def allocate_room(application_id):
     cursor = conn.cursor()
 
     # Get application details
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT ra.*, s.*, u.full_name, hb.building_name, hb.building_id
         FROM room_applications ra
         JOIN students s ON ra.student_id = s.student_id
         JOIN users u ON s.user_id = u.user_id
         JOIN hostel_buildings hb ON ra.preferred_building_id = hb.building_id
         WHERE ra.application_id = ?
-    ''', (application_id,))
+    ''')
+    cursor.execute(query, (application_id,))
     application = cursor.fetchone()
 
     if not application:
@@ -428,14 +443,15 @@ def allocate_room(application_id):
         return redirect(url_for('warden_dashboard'))
 
     # Get available rooms
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT r.*
         FROM rooms r
         WHERE r.building_id = ?
         AND r.room_type = ?
         AND r.status = 'available'
         ORDER BY r.floor_number, r.room_number
-    ''', (application['building_id'], application['preferred_room_type']))
+    ''')
+    cursor.execute(query, (application['building_id'], application['preferred_room_type']))
     available_rooms = cursor.fetchall()
 
     if request.method == 'POST':
@@ -447,11 +463,12 @@ def allocate_room(application_id):
 
         try:
             # Create room allocation
-            cursor.execute('''
+            query = adapt_query_for_db('''
                 INSERT INTO room_allocations
                 (room_id, student_id, start_date, allocated_by, allocation_notes)
                 VALUES (?, ?, ?, ?, ?)
-            ''', (
+            ''')
+            cursor.execute(query, (
                 room_id,
                 application['student_id'],
                 datetime.date.today(),
@@ -460,18 +477,20 @@ def allocate_room(application_id):
             ))
 
             # Update room status
-            cursor.execute('''
+            query = adapt_query_for_db('''
                 UPDATE rooms
                 SET status = 'occupied'
                 WHERE room_id = ?
-            ''', (room_id,))
+            ''')
+            cursor.execute(query, (room_id,))
 
             # Update application status
-            cursor.execute('''
+            query = adapt_query_for_db('''
                 UPDATE room_applications
                 SET status = 'approved', processed_by = ?, processed_date = CURRENT_TIMESTAMP
                 WHERE application_id = ?
-            ''', (user_id, application_id))
+            ''')
+            cursor.execute(query, (user_id, application_id))
 
             # Commit the transaction
             conn.commit()
@@ -501,12 +520,13 @@ def manage_complaints():
     cursor = conn.cursor()
 
     # Get warden details
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT w.*, hb.building_id, hb.building_name
         FROM wardens w
         LEFT JOIN hostel_buildings hb ON hb.warden_id = w.warden_id
         WHERE w.user_id = ?
-    ''', (user_id,))
+    ''')
+    cursor.execute(query, (user_id,))
     warden = cursor.fetchone()
 
     if not warden or not warden['building_id']:
@@ -514,7 +534,7 @@ def manage_complaints():
         return redirect(url_for('warden_dashboard'))
 
     # Get all complaints for the warden's building
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT c.*, u.full_name, r.room_number, hb.building_name
         FROM complaints c
         JOIN students s ON c.student_id = s.student_id
@@ -523,7 +543,8 @@ def manage_complaints():
         JOIN hostel_buildings hb ON r.building_id = hb.building_id
         WHERE hb.building_id = ?
         ORDER BY c.priority DESC, c.submitted_date ASC
-    ''', (warden['building_id'],))
+    ''')
+    cursor.execute(query, (warden['building_id'],))
     all_complaints = cursor.fetchall()
 
     # Separate complaints by priority and status
@@ -561,12 +582,13 @@ def room_applications():
     cursor = conn.cursor()
 
     # Get warden details
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT w.*, hb.building_id, hb.building_name
         FROM wardens w
         LEFT JOIN hostel_buildings hb ON hb.warden_id = w.warden_id
         WHERE w.user_id = ?
-    ''', (user_id,))
+    ''')
+    cursor.execute(query, (user_id,))
     warden = cursor.fetchone()
 
     if not warden or not warden['building_id']:
@@ -574,7 +596,7 @@ def room_applications():
         return redirect(url_for('warden_dashboard'))
 
     # Get pending applications for the warden's building
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT ra.*, s.roll_number, u.full_name, hb.building_name
         FROM room_applications ra
         JOIN students s ON ra.student_id = s.student_id
@@ -582,11 +604,12 @@ def room_applications():
         JOIN hostel_buildings hb ON ra.preferred_building_id = hb.building_id
         WHERE hb.building_id = ? AND ra.status = 'pending'
         ORDER BY ra.application_date ASC
-    ''', (warden['building_id'],))
+    ''')
+    cursor.execute(query, (warden['building_id'],))
     applications = cursor.fetchall()
 
     # Get processed applications
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT ra.*, s.roll_number, u.full_name, hb.building_name,
                CASE WHEN ra.status = 'approved' THEN r.room_number ELSE NULL END as room_number
         FROM room_applications ra
@@ -597,7 +620,8 @@ def room_applications():
         LEFT JOIN rooms r ON ral.room_id = r.room_id
         WHERE hb.building_id = ? AND ra.status != 'pending'
         ORDER BY ra.processed_date DESC
-    ''', (warden['building_id'],))
+    ''')
+    cursor.execute(query, (warden['building_id'],))
     processed_applications = cursor.fetchall()
 
     cursor.close()
@@ -617,7 +641,7 @@ def resolve_complaint(complaint_id):
     cursor = conn.cursor()
 
     # Get complaint details
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT c.*, u.full_name, r.room_number, hb.building_name
         FROM complaints c
         JOIN students s ON c.student_id = s.student_id
@@ -625,7 +649,8 @@ def resolve_complaint(complaint_id):
         JOIN rooms r ON c.room_id = r.room_id
         JOIN hostel_buildings hb ON r.building_id = hb.building_id
         WHERE c.complaint_id = ?
-    ''', (complaint_id,))
+    ''')
+    cursor.execute(query, (complaint_id,))
     complaint = cursor.fetchone()
 
     if not complaint:
@@ -636,11 +661,12 @@ def resolve_complaint(complaint_id):
         status = request.form['status']
         resolution_notes = request.form['resolution_notes']
 
-        cursor.execute('''
+        query = adapt_query_for_db('''
             UPDATE complaints
             SET status = ?, resolution_notes = ?, resolved_by = ?, resolved_date = CURRENT_TIMESTAMP
             WHERE complaint_id = ?
-        ''', (status, resolution_notes, user_id, complaint_id))
+        ''')
+        cursor.execute(query, (status, resolution_notes, user_id, complaint_id))
 
         conn.commit()
         flash('Complaint updated successfully!', 'success')
@@ -664,7 +690,7 @@ def admin_dashboard():
     cursor = conn.cursor()
 
     # Get occupancy statistics
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT hb.building_name,
                COUNT(r.room_id) AS total_rooms,
                SUM(CASE WHEN r.status = 'occupied' THEN 1 ELSE 0 END) AS occupied_rooms,
@@ -674,21 +700,23 @@ def admin_dashboard():
         LEFT JOIN rooms r ON hb.building_id = r.building_id
         GROUP BY hb.building_id
     ''')
+    cursor.execute(query)
     occupancy_stats = cursor.fetchall()
 
     # Get fee payment statistics
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT
             SUM(CASE WHEN payment_status = 'paid' THEN amount ELSE 0 END) AS total_paid,
             SUM(CASE WHEN payment_status = 'pending' THEN amount ELSE 0 END) AS total_pending,
             SUM(CASE WHEN payment_status = 'overdue' THEN amount ELSE 0 END) AS total_overdue
         FROM fee_records
     ''')
+    cursor.execute(query)
     fee_stats = cursor.fetchone()
 
     # Get complaint statistics
     if is_postgres():
-        cursor.execute('''
+        query = adapt_query_for_db('''
             SELECT
                 COUNT(*) AS total_complaints,
                 SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending_complaints,
@@ -701,8 +729,9 @@ def admin_dashboard():
                 END), 0) AS avg_resolution_time_hours
             FROM complaints
         ''')
+        cursor.execute(query)
     else:
-        cursor.execute('''
+        query = adapt_query_for_db('''
             SELECT
                 COUNT(*) AS total_complaints,
                 SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending_complaints,
@@ -715,6 +744,7 @@ def admin_dashboard():
                 END), 0) AS avg_resolution_time_hours
             FROM complaints
         ''')
+        cursor.execute(query)
     complaint_stats = cursor.fetchone()
 
     cursor.close()
@@ -732,7 +762,7 @@ def manage_users():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT u.*,
                CASE
                    WHEN u.user_type = 'student' THEN s.roll_number
@@ -745,6 +775,7 @@ def manage_users():
         LEFT JOIN admins a ON u.user_id = a.user_id AND u.user_type = 'admin'
         ORDER BY u.user_type, u.full_name
     ''')
+    cursor.execute(query)
     users = cursor.fetchall()
 
     cursor.close()
@@ -784,17 +815,19 @@ def add_user():
 
         # Insert user into users table
         if is_postgres():
-            cursor.execute('''
+            query = adapt_query_for_db('''
                 INSERT INTO users (username, password, email, full_name, user_type, phone_number)
                 VALUES (%s, %s, %s, %s, %s, %s)
                 RETURNING user_id
-            ''', (username, hashed_password, email, full_name, user_type, phone_number))
+            ''')
+    cursor.execute(query, (username, hashed_password, email, full_name, user_type, phone_number))
             user_id = cursor.fetchone()[0]
         else:
-            cursor.execute('''
+            query = adapt_query_for_db('''
                 INSERT INTO users (username, password, email, full_name, user_type, phone_number)
                 VALUES (?, ?, ?, ?, ?, ?)
-            ''', (username, hashed_password, email, full_name, user_type, phone_number))
+            ''')
+    cursor.execute(query, (username, hashed_password, email, full_name, user_type, phone_number))
             user_id = cursor.lastrowid
 
         # Insert additional details based on user type
@@ -848,7 +881,7 @@ def fee_reports():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT fr.*, u.full_name, s.roll_number, r.room_number, hb.building_name
         FROM fee_records fr
         JOIN students s ON fr.student_id = s.student_id
@@ -857,15 +890,17 @@ def fee_reports():
         JOIN hostel_buildings hb ON r.building_id = hb.building_id
         ORDER BY fr.due_date DESC
     ''')
+    cursor.execute(query)
     fee_records = cursor.fetchall()
 
     # Get all students for the add fee form
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT s.student_id, s.roll_number, u.full_name
         FROM students s
         JOIN users u ON s.user_id = u.user_id
         ORDER BY u.full_name
     ''')
+    cursor.execute(query)
     students = cursor.fetchall()
 
     cursor.close()
@@ -883,16 +918,17 @@ def visitor_records():
     cursor = conn.cursor()
 
     # Get warden details
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT w.*, hb.building_id
         FROM wardens w
         LEFT JOIN hostel_buildings hb ON hb.warden_id = w.warden_id
         WHERE w.user_id = ?
-    ''', (user_id,))
+    ''')
+    cursor.execute(query, (user_id,))
     warden = cursor.fetchone()
 
     # Get pending visitor approvals - using status instead of approval_status for compatibility
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT vr.*, u.full_name as student_name, r.room_number
         FROM visitor_records vr
         JOIN students s ON vr.student_id = s.student_id
@@ -901,11 +937,12 @@ def visitor_records():
         JOIN rooms r ON ra.room_id = r.room_id
         WHERE r.building_id = ? AND vr.status = 'pending'
         ORDER BY vr.check_in_time DESC
-    ''', (warden['building_id'],))
+    ''')
+    cursor.execute(query, (warden['building_id'],))
     pending_visitors = cursor.fetchall()
 
     # Get all approved visitor records for the warden's building
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT vr.*, u.full_name as student_name, r.room_number,
                CASE WHEN vr.approved_by IS NOT NULL THEN wu.full_name ELSE NULL END as approved_by_name
         FROM visitor_records vr
@@ -915,12 +952,13 @@ def visitor_records():
         JOIN room_allocations ra ON s.student_id = ra.student_id
         JOIN rooms r ON ra.room_id = r.room_id
         WHERE r.building_id = ? AND vr.status IN ('checked_in', 'checked_out', 'overstayed')
+    cursor.execute(query)
         ORDER BY vr.check_in_time DESC
     ''', (warden['building_id'],))
     visitors = cursor.fetchall()
 
     # Get all students in the warden's building for the add visitor form
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT s.student_id, u.full_name, r.room_number
         FROM students s
         JOIN users u ON s.user_id = u.user_id
@@ -928,7 +966,8 @@ def visitor_records():
         JOIN rooms r ON ra.room_id = r.room_id
         WHERE r.building_id = ? AND ra.end_date IS NULL
         ORDER BY u.full_name
-    ''', (warden['building_id'],))
+    ''')
+    cursor.execute(query, (warden['building_id'],))
     students = cursor.fetchall()
 
     cursor.close()
@@ -956,11 +995,12 @@ def add_visitor():
     cursor = conn.cursor()
 
     try:
-        cursor.execute('''
+        query = adapt_query_for_db('''
             INSERT INTO visitor_records
             (student_id, visitor_name, visitor_phone, relation, expected_check_out_time, purpose, approved_by, status)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (student_id, visitor_name, visitor_phone, relation, expected_checkout, purpose, user_id, 'checked_in'))
+        ''')
+    cursor.execute(query, (student_id, visitor_name, visitor_phone, relation, expected_checkout, purpose, user_id, 'checked_in'))
 
         conn.commit()
         flash('Visitor record added successfully!', 'success')
@@ -980,11 +1020,12 @@ def checkout_visitor(visitor_id):
     cursor = conn.cursor()
 
     try:
-        cursor.execute('''
+        query = adapt_query_for_db('''
             UPDATE visitor_records
             SET status = 'checked_out', actual_check_out_time = CURRENT_TIMESTAMP
             WHERE visitor_id = ?
-        ''', (visitor_id,))
+        ''')
+    cursor.execute(query, (visitor_id,))
 
         conn.commit()
         flash('Visitor checked out successfully!', 'success')
@@ -1006,11 +1047,12 @@ def approve_visitor(visitor_id):
     cursor = conn.cursor()
 
     try:
-        cursor.execute('''
+        query = adapt_query_for_db('''
             UPDATE visitor_records
             SET status = 'checked_in', approved_by = ?
             WHERE visitor_id = ?
-        ''', (user_id, visitor_id))
+        ''')
+    cursor.execute(query, (user_id, visitor_id))
 
         conn.commit()
         flash('Visitor request approved successfully!', 'success')
@@ -1032,11 +1074,12 @@ def reject_visitor(visitor_id):
     cursor = conn.cursor()
 
     try:
-        cursor.execute('''
+        query = adapt_query_for_db('''
             UPDATE visitor_records
             SET status = 'rejected', approved_by = ?
             WHERE visitor_id = ?
-        ''', (user_id, visitor_id))
+        ''')
+    cursor.execute(query, (user_id, visitor_id))
 
         conn.commit()
         flash('Visitor request rejected!', 'success')
@@ -1058,12 +1101,13 @@ def building_qr():
     cursor = conn.cursor()
 
     # Get warden's building
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT hb.*
         FROM hostel_buildings hb
         JOIN wardens w ON hb.warden_id = w.warden_id
         WHERE w.user_id = ?
-    ''', (user_id,))
+    ''')
+    cursor.execute(query, (user_id,))
     building = cursor.fetchone()
 
     cursor.close()
@@ -1102,7 +1146,8 @@ def register_visitor_form(building_id):
     cursor = conn.cursor()
 
     # Get building details
-    cursor.execute('SELECT * FROM hostel_buildings WHERE building_id = ?', (building_id,))
+    query = adapt_query_for_db('SELECT * FROM hostel_buildings WHERE building_id = ?')
+    cursor.execute(query, (building_id,))
     building = cursor.fetchone()
 
     if not building:
@@ -1111,7 +1156,7 @@ def register_visitor_form(building_id):
         return render_template('public/visitor_registration.html', building=None)
 
     # Get all students in the building
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT s.student_id, u.full_name, r.room_number
         FROM students s
         JOIN users u ON s.user_id = u.user_id
@@ -1119,7 +1164,8 @@ def register_visitor_form(building_id):
         JOIN rooms r ON ra.room_id = r.room_id
         WHERE r.building_id = ? AND ra.end_date IS NULL
         ORDER BY u.full_name
-    ''', (building_id,))
+    ''')
+    cursor.execute(query, (building_id,))
     students = cursor.fetchall()
 
     cursor.close()
@@ -1133,7 +1179,8 @@ def register_visitor(building_id):
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute('SELECT * FROM hostel_buildings WHERE building_id = ?', (building_id,))
+    query = adapt_query_for_db('SELECT * FROM hostel_buildings WHERE building_id = ?')
+    cursor.execute(query, (building_id,))
     building = cursor.fetchone()
 
     if not building:
@@ -1152,7 +1199,8 @@ def register_visitor(building_id):
         duration = int(request.form['duration'])
 
         # Validate student exists
-        cursor.execute('SELECT * FROM students WHERE student_id = ?', (student_id,))
+        query = adapt_query_for_db('SELECT * FROM students WHERE student_id = ?')
+    cursor.execute(query, (student_id,))
         student = cursor.fetchone()
 
         if not student:
@@ -1185,24 +1233,27 @@ def register_visitor(building_id):
     qr_code_hash = str(uuid.uuid4())
 
     try:
-        cursor.execute('''
+        query = adapt_query_for_db('''
             INSERT INTO visitor_records
             (student_id, visitor_name, visitor_phone, relation, expected_check_out_time, purpose, qr_code_hash, status)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (student_id, visitor_name, visitor_phone, relation, expected_checkout, purpose, qr_code_hash, 'pending'))
+        ''')
+    cursor.execute(query, (student_id, visitor_name, visitor_phone, relation, expected_checkout, purpose, qr_code_hash, 'pending'))
 
         # Get the inserted visitor record
         visitor_id = cursor.lastrowid
-        cursor.execute('SELECT * FROM visitor_records WHERE visitor_id = ?', (visitor_id,))
+        query = adapt_query_for_db('SELECT * FROM visitor_records WHERE visitor_id = ?')
+    cursor.execute(query, (visitor_id,))
         visitor = cursor.fetchone()
 
         # Get student name
-        cursor.execute('''
+        query = adapt_query_for_db('''
             SELECT u.full_name
             FROM students s
             JOIN users u ON s.user_id = u.user_id
             WHERE s.student_id = ?
-        ''', (student_id,))
+        ''')
+    cursor.execute(query, (student_id,))
         student_result = cursor.fetchone()
         student_name = student_result['full_name'] if student_result else 'Unknown'
 
@@ -1232,17 +1283,19 @@ def manage_notices():
     cursor = conn.cursor()
 
     # Get all notices
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT hn.*, u.full_name as posted_by_name, hb.building_name
         FROM hostel_notices hn
         JOIN users u ON hn.posted_by = u.user_id
         LEFT JOIN hostel_buildings hb ON hn.building_id = hb.building_id
         ORDER BY hn.posted_at DESC
     ''')
+    cursor.execute(query)
     notices = cursor.fetchall()
 
     # Get all buildings for the form
-    cursor.execute('SELECT * FROM hostel_buildings ORDER BY building_name')
+    query = adapt_query_for_db('SELECT * FROM hostel_buildings ORDER BY building_name')
+    cursor.execute(query)
     buildings = cursor.fetchall()
 
     cursor.close()
@@ -1275,11 +1328,12 @@ def create_notice():
     cursor = conn.cursor()
 
     try:
-        cursor.execute('''
+        query = adapt_query_for_db('''
             INSERT INTO hostel_notices
             (title, content, image_url, building_id, posted_by, expiry_date, is_active)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (title, content, image_url, building_id, user_id, expiry_date, True))
+        ''')
+    cursor.execute(query, (title, content, image_url, building_id, user_id, expiry_date, True))
 
         conn.commit()
         flash('Notice published successfully!', 'success')
@@ -1298,13 +1352,14 @@ def view_notice(notice_id):
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT hn.*, u.full_name as posted_by_name, hb.building_name
         FROM hostel_notices hn
         JOIN users u ON hn.posted_by = u.user_id
         LEFT JOIN hostel_buildings hb ON hn.building_id = hb.building_id
         WHERE hn.notice_id = ?
-    ''', (notice_id,))
+    ''')
+    cursor.execute(query, (notice_id,))
     notice = cursor.fetchone()
 
     if not notice:
@@ -1323,13 +1378,14 @@ def edit_notice(notice_id):
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT hn.*, u.full_name as posted_by_name, hb.building_name
         FROM hostel_notices hn
         JOIN users u ON hn.posted_by = u.user_id
         LEFT JOIN hostel_buildings hb ON hn.building_id = hb.building_id
         WHERE hn.notice_id = ?
-    ''', (notice_id,))
+    ''')
+    cursor.execute(query, (notice_id,))
     notice = cursor.fetchone()
 
     if not notice:
@@ -1337,7 +1393,8 @@ def edit_notice(notice_id):
         return redirect(url_for('manage_notices'))
 
     # Get all buildings for the form
-    cursor.execute('SELECT * FROM hostel_buildings ORDER BY building_name')
+    query = adapt_query_for_db('SELECT * FROM hostel_buildings ORDER BY building_name')
+    cursor.execute(query)
     buildings = cursor.fetchall()
 
     cursor.close()
@@ -1359,7 +1416,8 @@ def update_notice(notice_id):
     cursor = conn.cursor()
 
     # Get current notice
-    cursor.execute('SELECT * FROM hostel_notices WHERE notice_id = ?', (notice_id,))
+    query = adapt_query_for_db('SELECT * FROM hostel_notices WHERE notice_id = ?')
+    cursor.execute(query, (notice_id,))
     notice = cursor.fetchone()
 
     if not notice:
@@ -1382,11 +1440,12 @@ def update_notice(notice_id):
             flash(f'Error uploading image: {str(e)}', 'error')
 
     try:
-        cursor.execute('''
+        query = adapt_query_for_db('''
             UPDATE hostel_notices
             SET title = ?, content = ?, image_url = ?, building_id = ?, expiry_date = ?
             WHERE notice_id = ?
-        ''', (title, content, image_url, building_id, expiry_date, notice_id))
+        ''')
+    cursor.execute(query, (title, content, image_url, building_id, expiry_date, notice_id))
 
         conn.commit()
         flash('Notice updated successfully!', 'success')
@@ -1406,7 +1465,8 @@ def toggle_notice(notice_id):
     cursor = conn.cursor()
 
     # Get current notice status
-    cursor.execute('SELECT is_active FROM hostel_notices WHERE notice_id = ?', (notice_id,))
+    query = adapt_query_for_db('SELECT is_active FROM hostel_notices WHERE notice_id = ?')
+    cursor.execute(query, (notice_id,))
     notice = cursor.fetchone()
 
     if not notice:
@@ -1419,7 +1479,8 @@ def toggle_notice(notice_id):
     new_status = not notice['is_active']
 
     try:
-        cursor.execute('UPDATE hostel_notices SET is_active = ? WHERE notice_id = ?', (new_status, notice_id))
+        query = adapt_query_for_db('UPDATE hostel_notices SET is_active = ? WHERE notice_id = ?')
+    cursor.execute(query, (new_status, notice_id))
         conn.commit()
         status_text = 'activated' if new_status else 'deactivated'
         flash(f'Notice {status_text} successfully!', 'success')
@@ -1442,29 +1503,32 @@ def view_student_notice(notice_id):
     cursor = conn.cursor()
 
     # Get student details
-    cursor.execute('SELECT * FROM students WHERE user_id = ?', (user_id,))
+    query = adapt_query_for_db('SELECT * FROM students WHERE user_id = ?')
+    cursor.execute(query, (user_id,))
     student = cursor.fetchone()
 
     # Get student's building
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT hb.building_id
         FROM room_allocations ra
         JOIN rooms r ON ra.room_id = r.room_id
         JOIN hostel_buildings hb ON r.building_id = hb.building_id
         WHERE ra.student_id = ? AND ra.status = 'active'
-    ''', (student['student_id'],))
+    ''')
+    cursor.execute(query, (student['student_id'],))
     building_result = cursor.fetchone()
     building_id = building_result['building_id'] if building_result else None
 
     # Get the notice, ensuring it's either for all buildings or for the student's building
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT hn.*, u.full_name as posted_by_name, hb.building_name
         FROM hostel_notices hn
         JOIN users u ON hn.posted_by = u.user_id
         LEFT JOIN hostel_buildings hb ON hn.building_id = hb.building_id
         WHERE hn.notice_id = ? AND hn.is_active = 1
         AND (hn.building_id IS NULL OR hn.building_id = ?)
-    ''', (notice_id, building_id))
+    ''')
+    cursor.execute(query, (notice_id, building_id))
     notice = cursor.fetchone()
 
     if not notice:
@@ -1489,7 +1553,7 @@ def occupancy_reports():
     cursor = conn.cursor()
 
     # Get occupancy statistics by building
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT hb.building_name,
                COUNT(r.room_id) AS total_rooms,
                SUM(CASE WHEN r.status = 'occupied' THEN 1 ELSE 0 END) AS occupied_rooms,
@@ -1500,19 +1564,21 @@ def occupancy_reports():
         GROUP BY hb.building_id
         ORDER BY hb.building_name
     ''')
+    cursor.execute(query)
     occupancy_stats_data = cursor.fetchall()
 
     # Convert SQLite Row objects to dictionaries
     occupancy_stats = [dict(stat) for stat in occupancy_stats_data]
 
     # Get total occupancy statistics
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT COUNT(r.room_id) AS total_rooms,
                SUM(CASE WHEN r.status = 'occupied' THEN 1 ELSE 0 END) AS occupied_rooms,
                SUM(CASE WHEN r.status = 'available' THEN 1 ELSE 0 END) AS available_rooms,
                SUM(CASE WHEN r.status = 'maintenance' THEN 1 ELSE 0 END) AS maintenance_rooms
         FROM rooms r
     ''')
+    cursor.execute(query)
     total_stats_data = cursor.fetchone()
 
     # Convert to dictionary or create default values
@@ -1532,7 +1598,7 @@ def occupancy_reports():
         overall_occupancy_rate = round((total_stats['occupied_rooms'] / total_stats['total_rooms']) * 100)
 
     # Get room type statistics
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT r.room_type,
                COUNT(r.room_id) AS total,
                SUM(CASE WHEN r.status = 'occupied' THEN 1 ELSE 0 END) AS occupied,
@@ -1541,6 +1607,7 @@ def occupancy_reports():
         FROM rooms r
         GROUP BY r.room_type
     ''')
+    cursor.execute(query)
     room_type_results = cursor.fetchall()
 
     # Convert to dictionary for easier template access
@@ -1572,7 +1639,7 @@ def manage_hostels():
     cursor = conn.cursor()
 
     # Get all hostel buildings with occupancy statistics
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT hb.*,
                COUNT(r.room_id) AS total_rooms,
                SUM(CASE WHEN r.status = 'occupied' THEN 1 ELSE 0 END) AS occupied_rooms,
@@ -1583,6 +1650,7 @@ def manage_hostels():
         GROUP BY hb.building_id
         ORDER BY hb.building_name
     ''')
+    cursor.execute(query)
     buildings_data = cursor.fetchall()
 
     # Convert SQLite Row objects to dictionaries
@@ -1619,11 +1687,12 @@ def add_hostel_building():
     cursor = conn.cursor()
 
     try:
-        cursor.execute('''
+        query = adapt_query_for_db('''
             INSERT INTO hostel_buildings
             (building_name, location, gender, floors, description, gender_type, total_rooms, address)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (building_name, location, gender, floors, description, gender, 0, location))
+        ''')
+    cursor.execute(query, (building_name, location, gender, floors, description, gender, 0, location))
 
         conn.commit()
         flash('Hostel building added successfully!', 'success')
@@ -1650,11 +1719,12 @@ def edit_hostel_building(building_id):
         description = request.form.get('description', '')
 
         try:
-            cursor.execute('''
+            query = adapt_query_for_db('''
                 UPDATE hostel_buildings
                 SET building_name = ?, location = ?, gender = ?, floors = ?, description = ?, gender_type = ?, address = ?
                 WHERE building_id = ?
-            ''', (building_name, location, gender, floors, description, gender, location, building_id))
+            ''')
+    cursor.execute(query, (building_name, location, gender, floors, description, gender, location, building_id))
 
             conn.commit()
             flash('Hostel building updated successfully!', 'success')
@@ -1663,7 +1733,8 @@ def edit_hostel_building(building_id):
             flash(f'Error updating hostel building: {str(e)}', 'error')
 
     # Get building details
-    cursor.execute('SELECT * FROM hostel_buildings WHERE building_id = ?', (building_id,))
+    query = adapt_query_for_db('SELECT * FROM hostel_buildings WHERE building_id = ?')
+    cursor.execute(query, (building_id,))
     building_data = cursor.fetchone()
 
     if not building_data:
@@ -1689,16 +1760,19 @@ def delete_hostel_building(building_id):
 
     try:
         # First, delete all room allocations for rooms in this building
-        cursor.execute('''
+        query = adapt_query_for_db('''
             DELETE FROM room_allocations
             WHERE room_id IN (SELECT room_id FROM rooms WHERE building_id = ?)
-        ''', (building_id,))
+        ''')
+    cursor.execute(query, (building_id,))
 
         # Then, delete all rooms in this building
-        cursor.execute('DELETE FROM rooms WHERE building_id = ?', (building_id,))
+        query = adapt_query_for_db('DELETE FROM rooms WHERE building_id = ?')
+    cursor.execute(query, (building_id,))
 
         # Finally, delete the building itself
-        cursor.execute('DELETE FROM hostel_buildings WHERE building_id = ?', (building_id,))
+        query = adapt_query_for_db('DELETE FROM hostel_buildings WHERE building_id = ?')
+    cursor.execute(query, (building_id,))
 
         conn.commit()
         flash('Hostel building and all associated rooms deleted successfully!', 'success')
@@ -1719,7 +1793,8 @@ def manage_rooms(building_id):
     cursor = conn.cursor()
 
     # Get building details
-    cursor.execute('SELECT * FROM hostel_buildings WHERE building_id = ?', (building_id,))
+    query = adapt_query_for_db('SELECT * FROM hostel_buildings WHERE building_id = ?')
+    cursor.execute(query, (building_id,))
     building = cursor.fetchone()
 
     if not building:
@@ -1729,11 +1804,12 @@ def manage_rooms(building_id):
         return redirect(url_for('manage_hostels'))
 
     # Get all rooms in the building
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT * FROM rooms
         WHERE building_id = ?
         ORDER BY floor_number, room_number
-    ''', (building_id,))
+    ''')
+    cursor.execute(query, (building_id,))
     rooms_data = cursor.fetchall()
 
     # Convert SQLite Row objects to dictionaries
@@ -1743,13 +1819,14 @@ def manage_rooms(building_id):
         room = dict(room_data)
 
         # Get occupants for this room
-        cursor.execute('''
+        query = adapt_query_for_db('''
             SELECT s.student_id, s.roll_number, u.full_name
             FROM room_allocations ra
             JOIN students s ON ra.student_id = s.student_id
             JOIN users u ON s.user_id = u.user_id
             WHERE ra.room_id = ? AND ra.status = 'active'
-        ''', (room['room_id'],))
+        ''')
+    cursor.execute(query, (room['room_id'],))
         room['occupants'] = cursor.fetchall()
 
         # Set capacity based on room type
@@ -1767,13 +1844,13 @@ def manage_rooms(building_id):
         rooms.append(room)
 
     # Get available students (not allocated to any room)
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT s.student_id, s.roll_number, u.full_name
         FROM students s
         JOIN users u ON s.user_id = u.user_id
         WHERE s.student_id NOT IN (
-            SELECT student_id FROM room_allocations WHERE status = 'active'
-        )
+            SELECT student_id FROM room_allocations WHERE status = 'active')
+    cursor.execute(query)
         AND s.gender = ?
         ORDER BY u.full_name
     ''', (building['gender'],))
@@ -1804,7 +1881,8 @@ def add_rooms(building_id):
     cursor = conn.cursor()
 
     # Check if building exists
-    cursor.execute('SELECT * FROM hostel_buildings WHERE building_id = ?', (building_id,))
+    query = adapt_query_for_db('SELECT * FROM hostel_buildings WHERE building_id = ?')
+    cursor.execute(query, (building_id,))
     building = cursor.fetchone()
 
     if not building:
@@ -1819,11 +1897,12 @@ def add_rooms(building_id):
         if start_number.isdigit():
             for i in range(count):
                 room_number = str(int(start_number) + i)
-                cursor.execute('''
+                query = adapt_query_for_db('''
                     INSERT INTO rooms
                     (building_id, room_number, floor_number, room_type, status, monthly_rent)
                     VALUES (?, ?, ?, ?, ?, ?)
-                ''', (building_id, room_number, floor, room_type, 'available', monthly_rent))
+                ''')
+    cursor.execute(query, (building_id, room_number, floor, room_type, 'available', monthly_rent))
         else:
             # If start_number has a prefix (e.g., A101), extract the numeric part and increment it
             prefix = ''.join([c for c in start_number if not c.isdigit()])
@@ -1832,11 +1911,12 @@ def add_rooms(building_id):
             if numeric_part:
                 for i in range(count):
                     room_number = prefix + str(int(numeric_part) + i)
-                    cursor.execute('''
+                    query = adapt_query_for_db('''
                         INSERT INTO rooms
                         (building_id, room_number, floor_number, room_type, status, monthly_rent)
                         VALUES (?, ?, ?, ?, ?, ?)
-                    ''', (building_id, room_number, floor, room_type, 'available', monthly_rent))
+                    ''')
+    cursor.execute(query, (building_id, room_number, floor, room_type, 'available', monthly_rent))
             else:
                 flash('Invalid room number format', 'error')
                 cursor.close()
@@ -1867,7 +1947,8 @@ def update_room(room_id):
     cursor = conn.cursor()
 
     # Get room details to get building_id
-    cursor.execute('SELECT building_id FROM rooms WHERE room_id = ?', (room_id,))
+    query = adapt_query_for_db('SELECT building_id FROM rooms WHERE room_id = ?')
+    cursor.execute(query, (room_id,))
     room = cursor.fetchone()
 
     if not room:
@@ -1879,11 +1960,12 @@ def update_room(room_id):
     building_id = room['building_id']
 
     try:
-        cursor.execute('''
+        query = adapt_query_for_db('''
             UPDATE rooms
             SET room_number = ?, floor_number = ?, room_type = ?, monthly_rent = ?, status = ?
             WHERE room_id = ?
-        ''', (room_number, floor, room_type, monthly_rent, status, room_id))
+        ''')
+    cursor.execute(query, (room_number, floor, room_type, monthly_rent, status, room_id))
 
         conn.commit()
         flash('Room updated successfully!', 'success')
@@ -1903,7 +1985,8 @@ def delete_room(room_id):
     cursor = conn.cursor()
 
     # Get room details to get building_id
-    cursor.execute('SELECT building_id FROM rooms WHERE room_id = ?', (room_id,))
+    query = adapt_query_for_db('SELECT building_id FROM rooms WHERE room_id = ?')
+    cursor.execute(query, (room_id,))
     room = cursor.fetchone()
 
     if not room:
@@ -1916,10 +1999,12 @@ def delete_room(room_id):
 
     try:
         # First, delete all room allocations for this room
-        cursor.execute('DELETE FROM room_allocations WHERE room_id = ?', (room_id,))
+        query = adapt_query_for_db('DELETE FROM room_allocations WHERE room_id = ?')
+    cursor.execute(query, (room_id,))
 
         # Then, delete the room itself
-        cursor.execute('DELETE FROM rooms WHERE room_id = ?', (room_id,))
+        query = adapt_query_for_db('DELETE FROM rooms WHERE room_id = ?')
+    cursor.execute(query, (room_id,))
 
         conn.commit()
         flash('Room and all allocations deleted successfully!', 'success')
@@ -1941,12 +2026,13 @@ def add_student_to_room(room_id):
     cursor = conn.cursor()
 
     # Get room details
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT r.*, hb.gender
         FROM rooms r
         JOIN hostel_buildings hb ON r.building_id = hb.building_id
         WHERE r.room_id = ?
-    ''', (room_id,))
+    ''')
+    cursor.execute(query, (room_id,))
     room = cursor.fetchone()
 
     if not room:
@@ -1963,12 +2049,13 @@ def add_student_to_room(room_id):
         return redirect(url_for('manage_rooms', building_id=room['building_id']))
 
     # Check if student exists and gender matches
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT s.*
         FROM students s
         JOIN users u ON s.user_id = u.user_id
         WHERE s.student_id = ?
-    ''', (student_id,))
+    ''')
+    cursor.execute(query, (student_id,))
     student = cursor.fetchone()
 
     if not student:
@@ -1984,10 +2071,11 @@ def add_student_to_room(room_id):
         return redirect(url_for('manage_rooms', building_id=room['building_id']))
 
     # Check if student is already allocated to a room
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT * FROM room_allocations
         WHERE student_id = ? AND status = 'active'
-    ''', (student_id,))
+    ''')
+    cursor.execute(query, (student_id,))
     existing_allocation = cursor.fetchone()
 
     if existing_allocation:
@@ -1997,11 +2085,12 @@ def add_student_to_room(room_id):
         return redirect(url_for('manage_rooms', building_id=room['building_id']))
 
     # Check if room is full
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT COUNT(*) as current_occupants
         FROM room_allocations
         WHERE room_id = ? AND status = 'active'
-    ''', (room_id,))
+    ''')
+    cursor.execute(query, (room_id,))
     occupancy = cursor.fetchone()
 
     capacity = 1
@@ -2022,18 +2111,20 @@ def add_student_to_room(room_id):
 
     try:
         # Add student to room
-        cursor.execute('''
+        query = adapt_query_for_db('''
             INSERT INTO room_allocations
             (student_id, room_id, allocation_date, status)
             VALUES (?, ?, CURRENT_TIMESTAMP, 'active')
+    cursor.execute(query)
         ''', (student_id, room_id))
 
         # Update room status to occupied
-        cursor.execute('''
+        query = adapt_query_for_db('''
             UPDATE rooms
             SET status = 'occupied'
             WHERE room_id = ?
-        ''', (room_id,))
+        ''')
+    cursor.execute(query, (room_id,))
 
         conn.commit()
         flash('Student allocated to room successfully!', 'success')
@@ -2053,7 +2144,8 @@ def remove_student_from_room(room_id, student_id):
     cursor = conn.cursor()
 
     # Get room details
-    cursor.execute('SELECT building_id FROM rooms WHERE room_id = ?', (room_id,))
+    query = adapt_query_for_db('SELECT building_id FROM rooms WHERE room_id = ?')
+    cursor.execute(query, (room_id,))
     room = cursor.fetchone()
 
     if not room:
@@ -2064,27 +2156,30 @@ def remove_student_from_room(room_id, student_id):
 
     try:
         # Update allocation status
-        cursor.execute('''
+        query = adapt_query_for_db('''
             UPDATE room_allocations
             SET status = 'inactive', end_date = CURRENT_TIMESTAMP
             WHERE room_id = ? AND student_id = ? AND status = 'active'
-        ''', (room_id, student_id))
+        ''')
+    cursor.execute(query, (room_id, student_id))
 
         # Check if there are any remaining active allocations for this room
-        cursor.execute('''
+        query = adapt_query_for_db('''
             SELECT COUNT(*) as remaining_occupants
             FROM room_allocations
             WHERE room_id = ? AND status = 'active'
-        ''', (room_id,))
+        ''')
+    cursor.execute(query, (room_id,))
         remaining = cursor.fetchone()
 
         # If no remaining occupants, update room status to available
         if remaining['remaining_occupants'] == 0:
-            cursor.execute('''
+            query = adapt_query_for_db('''
                 UPDATE rooms
                 SET status = 'available'
                 WHERE room_id = ?
-            ''', (room_id,))
+            ''')
+    cursor.execute(query, (room_id,))
 
         conn.commit()
         flash('Student removed from room successfully!', 'success')
@@ -2112,11 +2207,12 @@ def add_fee_record():
     cursor = conn.cursor()
 
     try:
-        cursor.execute('''
+        query = adapt_query_for_db('''
             INSERT INTO fee_records
             (student_id, room_id, fee_type, amount, due_date, payment_status, created_by)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (student_id, room_id, fee_type, amount, due_date, 'pending', user_id))
+        ''')
+    cursor.execute(query, (student_id, room_id, fee_type, amount, due_date, 'pending', user_id))
 
         conn.commit()
         flash('Fee record added successfully!', 'success')
@@ -2139,12 +2235,13 @@ def mark_fee_paid(fee_id):
     cursor = conn.cursor()
 
     try:
-        cursor.execute('''
+        query = adapt_query_for_db('''
             UPDATE fee_records
             SET payment_status = 'paid', payment_date = CURRENT_TIMESTAMP,
                 payment_method = ?, transaction_id = ?
             WHERE fee_id = ?
-        ''', (payment_method, transaction_id, fee_id))
+        ''')
+    cursor.execute(query, (payment_method, transaction_id, fee_id))
 
         conn.commit()
         flash('Fee marked as paid successfully!', 'success')
@@ -2163,13 +2260,14 @@ def get_student_rooms(student_id):
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT r.room_id, r.room_number, hb.building_name
         FROM room_allocations ra
         JOIN rooms r ON ra.room_id = r.room_id
         JOIN hostel_buildings hb ON r.building_id = hb.building_id
         WHERE ra.student_id = ? AND ra.status = 'active'
-    ''', (student_id,))
+    ''')
+    cursor.execute(query, (student_id,))
     rooms = cursor.fetchall()
 
     cursor.close()
