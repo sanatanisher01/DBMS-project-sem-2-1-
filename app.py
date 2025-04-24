@@ -165,52 +165,69 @@ def student_dashboard():
     cursor = conn.cursor()
 
     # Get student details
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT s.*, u.* FROM students s
         JOIN users u ON s.user_id = u.user_id
         WHERE s.user_id = ?
-    ''', (user_id,))
+    ''')
+    cursor.execute(query, (user_id,))
     student = cursor.fetchone()
 
     # Get room allocation
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT ra.*, r.room_number, r.room_type, hb.building_name, hb.building_id
         FROM room_allocations ra
         JOIN rooms r ON ra.room_id = r.room_id
         JOIN hostel_buildings hb ON r.building_id = hb.building_id
         WHERE ra.student_id = ? AND ra.status = 'active'
-    ''', (student['student_id'],))
+    ''')
+    cursor.execute(query, (student['student_id'],))
     room_allocation = cursor.fetchone()
     building_id = room_allocation['building_id'] if room_allocation else None
 
     # Get pending complaints
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT * FROM complaints
         WHERE student_id = ? AND status != 'resolved'
         ORDER BY submitted_date DESC
-    ''', (student['student_id'],))
+    ''')
+    cursor.execute(query, (student['student_id'],))
     complaints = cursor.fetchall()
 
     # Get fee status
-    cursor.execute('''
+    query = adapt_query_for_db('''
         SELECT * FROM fee_records
         WHERE student_id = ?
         ORDER BY due_date DESC
-    ''', (student['student_id'],))
+    ''')
+    cursor.execute(query, (student['student_id'],))
     fees = cursor.fetchall()
 
     # Get notices for the student's building or general notices
-    cursor.execute('''
-        SELECT hn.*, u.full_name as posted_by_name, hb.building_name
-        FROM hostel_notices hn
-        JOIN users u ON hn.posted_by = u.user_id
-        LEFT JOIN hostel_buildings hb ON hn.building_id = hb.building_id
-        WHERE hn.is_active = 1
-        AND (hn.building_id IS NULL OR hn.building_id = ?)
-        AND (hn.expiry_date IS NULL OR hn.expiry_date >= date('now'))
-        ORDER BY hn.posted_at DESC
-        LIMIT 6
-    ''', (building_id,))
+    if is_postgres():
+        cursor.execute('''
+            SELECT hn.*, u.full_name as posted_by_name, hb.building_name
+            FROM hostel_notices hn
+            JOIN users u ON hn.posted_by = u.user_id
+            LEFT JOIN hostel_buildings hb ON hn.building_id = hb.building_id
+            WHERE hn.is_active = TRUE
+            AND (hn.building_id IS NULL OR hn.building_id = %s)
+            AND (hn.expiry_date IS NULL OR hn.expiry_date >= CURRENT_DATE)
+            ORDER BY hn.posted_at DESC
+            LIMIT 6
+        ''', (building_id,))
+    else:
+        cursor.execute('''
+            SELECT hn.*, u.full_name as posted_by_name, hb.building_name
+            FROM hostel_notices hn
+            JOIN users u ON hn.posted_by = u.user_id
+            LEFT JOIN hostel_buildings hb ON hn.building_id = hb.building_id
+            WHERE hn.is_active = 1
+            AND (hn.building_id IS NULL OR hn.building_id = ?)
+            AND (hn.expiry_date IS NULL OR hn.expiry_date >= date('now'))
+            ORDER BY hn.posted_at DESC
+            LIMIT 6
+        ''', (building_id,))
     notices = cursor.fetchall()
 
     cursor.close()
